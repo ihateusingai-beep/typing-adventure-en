@@ -64,7 +64,7 @@ export class SaveStore extends EventTarget{
   this.writeLocal();
   this.emit();
  }
- async login(){throw new Error('此版本不需登入，進度已自動保存在本機。');}
+ async login(){throw new Error('唔使登入。進度自動儲存。');}
  async collectionTransaction(operation){
   if(this.collectionBusy)throw Error('靈石正在整理，請稍候。');
   this.collectionBusy=true;
@@ -122,8 +122,8 @@ export class SaveStore extends EventTarget{
  }
  export(){return JSON.stringify({game:'typing-adventure-en',route:'en',save:normalizeSave(this.save)},null,2);}
  importFile(value){
-  if(!value||(value.game!=='typing-adventure-en'&&value.game!=='wuxia-typing-journey'))throw Error('請選擇這個遊戲匯出的紀錄檔。');
-  if(value.route&&routeKey(value.route)!=='en')throw Error('只支援英文路線紀錄。');
+  if(!value||(value.game!=='typing-adventure-en'&&value.game!=='wuxia-typing-journey'))throw Error('請揀呢個遊戲嘅存檔。');
+  if(value.route&&routeKey(value.route)!=='en')throw Error('只支援英文存檔。');
   this.update(mergeSaves(this.save,normalizeSave(value.save),{nameDirty:!this.save.displayName}));
  }
 }

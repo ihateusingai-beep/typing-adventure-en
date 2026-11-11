@@ -10,29 +10,29 @@ export const CHAPTERS = CURRICULUM.chapters;
 export const NODE_BY_ID = Object.fromEntries(NODES.map(n => [n.id, n]));
 export const VERSION = '3.24.4';
 export const OUTFITS = [
-  { effect:'dust', effectName:'普通劍式', effectDescription:'使用練習劍出招，不附加攻擊特效。', id:'O00', name:'布衣少俠', title:'初入江湖', node:null, description:'深藍布衣、練習劍。江湖的第一步，從一個鍵開始。' },
-  { effect:'bamboo', effectName:'竹葉流光', effectDescription:'翠綠劍痕與竹葉護光。', id:'O01', name:'青竹弟子', title:'雙手有了家', node:'S01-04', description:'交領外衫、竹紋護腕。你已經穩穩找到雙手的位置。' },
-  { effect:'wind', effectName:'踏雲劍風', effectDescription:'青藍劍風隨出招展開。', id:'O02', name:'雲行俠客', title:'踏雲送信', node:'S03-05', description:'輕肩護具、送信腰袋。上排山路，也能一步一步走穩。' },
-  { effect:'frost', effectName:'玄霜結界', effectDescription:'冰藍劍痕與霜晶護環。', id:'O03', name:'玄霜護行', title:'星燈引路', node:'S05-05', description:'短披風、護肩與手套。你親手點亮了十盞星燈。' },
-  { effect:'gold', effectName:'天衡金印', effectDescription:'金色劍芒與宗師護印。', id:'O04', name:'天衡宗師', title:'鍵心歸一', node:'S07-03', description:'長劍袍與師門腰飾。每一招，都記著一路走來的練習。' },
-  {id:'O05',name:'火羽行者',title:'急信送達',node:'S02-04',description:'赤紅短披風、銅甲護肩與火羽扣。雙手歸位，便能踏上送信的路。',effect:'ember',effectName:'火羽劍芒',effectDescription:'出招灑下橙紅餘燼，格擋展開火羽護環。'},
-  {id:'O06',name:'月華劍使',title:'竹橋之約',node:'S04-04',description:'月白劍袍、銀色輕甲與藍緞。守住竹橋，讓月光照亮前路。',effect:'moon',effectName:'月華漣漪',effectDescription:'銀藍弦月劍痕，格擋亮起月華護環。'},
-  {id:'O07',name:'星河劍隱',title:'連招成訣',node:'S06-04',description:'深紫繡星長袍、星紋肩甲與流光劍穗。讓每個字都接成自己的劍訣。',effect:'star',effectName:'星河劍陣',effectDescription:'紫金星點沿劍痕流動，格擋浮現星河護印。'},
- {id:'O08',name:'天符星師',title:'天符珍藏',item:'outfit-O08',description:'月白金紋法袍與天符冠，將星火凝成自己的法訣。',effect:'gold',effectName:'天符金印',effectDescription:'金色靈符與護印相隨。'},
- {id:'O09',name:'幽蓮劍仙',title:'幽蓮珍藏',item:'outfit-O09',description:'玄黑蓮紋劍袍與流霞劍穗，幽蓮花光沿劍而生。',effect:'lotus',effectName:'幽蓮劍華',effectDescription:'粉紫蓮華沿出招流動。'},
- {id:'O10',name:'靈墨練氣',title:'仙途 · 練氣',item:'outfit-O10',realm:'練氣',category:'immortal',description:'青白輕衫與靈筆，吐納之間，筆鋒已有靈息。',effect:'wind',effectName:'練氣靈陣',effectDescription:'靈氣蓄勢、御筆揮招與符陣護身。'},
- {id:'O11',name:'青霄築基',title:'仙途 · 築基',item:'outfit-O11',realm:'築基',category:'immortal',description:'青霄長袍與玉紋護具，御筆成陣，衣袂隨靈氣舒展。',effect:'bamboo',effectName:'築基靈陣',effectDescription:'靈氣蓄勢、御筆揮招與符陣護身。'},
- {id:'O12',name:'金闕丹心',title:'仙途 · 金丹',item:'outfit-O12',realm:'金丹',category:'immortal',description:'白金錦袍與丹紋腰飾，丹光凝聚，揮招自有金霞。',effect:'gold',effectName:'金丹靈陣',effectDescription:'靈氣蓄勢、御筆揮招與符陣護身。'},
- {id:'O13',name:'紫宸元嬰',title:'仙途 · 元嬰',item:'outfit-O13',realm:'元嬰',category:'immortal',description:'紫宸法衣、星紋護肩與靈筆，踏虛而立，星芒環繞。',effect:'star',effectName:'元嬰靈陣',effectDescription:'靈氣蓄勢、御筆揮招與符陣護身。'},
- {id:'O14',name:'太虛化神',title:'仙途 · 化神',item:'outfit-O14',realm:'化神',category:'immortal',description:'流霞長衣與幽藍靈焰，御氣凝形，靈光隨招化生。',effect:'aurora',effectName:'化神靈陣',effectDescription:'靈氣蓄勢、御筆揮招與符陣護身。'},
- {id:'O15',name:'九霄渡劫',title:'仙途 · 渡劫',item:'outfit-O15',realm:'渡劫',category:'immortal',description:'九霄仙衣與鎏金髮冠，龍紋隨衣，金符伴著靈筆出陣。',effect:'moon',effectName:'渡劫靈陣',effectDescription:'靈氣蓄勢、御筆揮招與符陣護身。'},
+  { effect:'dust', effectName:'普通', effectDescription:'平常練習。', id:'O00', name:'藍衫', title:'開始', node:null, description:'藍衫。由第一粒鍵開始。' },
+  { effect:'bamboo', effectName:'竹', effectDescription:'綠色光。', id:'O01', name:'青衫', title:'識 F J', node:'S01-04', description:'青衫。你識搵 F 同 J。' },
+  { effect:'wind', effectName:'風', effectDescription:'藍色風。', id:'O02', name:'雲衫', title:'上面鍵', node:'S03-05', description:'輕便衫。上面鍵都識。' },
+  { effect:'frost', effectName:'冰', effectDescription:'冰藍色。', id:'O03', name:'霜衫', title:'數字', node:'S05-05', description:'短披風。數字鍵都識。' },
+  { effect:'gold', effectName:'金', effectDescription:'金色光。', id:'O04', name:'金衫', title:'完成', node:'S07-03', description:'長袍。全部關卡完成！' },
+  {id:'O05',name:'紅衫',title:'中間行',node:'S02-04',description:'紅披風。中間一行識撳。',effect:'ember',effectName:'火',effectDescription:'橙色光。'},
+  {id:'O06',name:'月衫',title:'下面鍵',node:'S04-04',description:'月白衫。下面鍵都識。',effect:'moon',effectName:'月',effectDescription:'銀色光。'},
+  {id:'O07',name:'星衫',title:'字詞',node:'S06-04',description:'紫星衫。識連住撳。',effect:'star',effectName:'星',effectDescription:'紫色星光。'},
+ {id:'O08',name:'符衫',title:'珍藏',item:'outfit-O08',description:'特別衫。',effect:'gold',effectName:'金符',effectDescription:'金色。'},
+ {id:'O09',name:'蓮衫',title:'珍藏',item:'outfit-O09',description:'蓮花衫。',effect:'lotus',effectName:'蓮',effectDescription:'粉紫光。'},
+ {id:'O10',name:'練氣衫',title:'仙途',item:'outfit-O10',realm:'練氣',category:'immortal',description:'青白衫。',effect:'wind',effectName:'練氣',effectDescription:'靈氣。'},
+ {id:'O11',name:'築基衫',title:'仙途',item:'outfit-O11',realm:'築基',category:'immortal',description:'青袍。',effect:'bamboo',effectName:'築基',effectDescription:'靈氣。'},
+ {id:'O12',name:'金丹衫',title:'仙途',item:'outfit-O12',realm:'金丹',category:'immortal',description:'白金衫。',effect:'gold',effectName:'金丹',effectDescription:'靈氣。'},
+ {id:'O13',name:'元嬰衫',title:'仙途',item:'outfit-O13',realm:'元嬰',category:'immortal',description:'紫衫。',effect:'star',effectName:'元嬰',effectDescription:'靈氣。'},
+ {id:'O14',name:'化神衫',title:'仙途',item:'outfit-O14',realm:'化神',category:'immortal',description:'流霞衫。',effect:'aurora',effectName:'化神',effectDescription:'靈氣。'},
+ {id:'O15',name:'渡劫衫',title:'仙途',item:'outfit-O15',realm:'渡劫',category:'immortal',description:'金冠衫。',effect:'moon',effectName:'渡劫',effectDescription:'靈氣。'},
  ...LIMITED_COSTUMES, ...RIFT_OUTFITS, ...ORDINARY_HEROINES
 ].sort((a,b)=>(a.category==='rift'?'ZZ':a.item?'Z':a.node??'').localeCompare(b.category==='rift'?'ZZ':b.item?'Z':b.node??''));
 export const ENEMIES = {
- E_NEW_01:{name:'竹葉木樁',kind:'wood'}, E_NEW_02:{name:'墨點小靈',kind:'spirit'},
- E_NEW_03:{name:'送信紙鳶',kind:'kite'}, E_NEW_04:{name:'竹橋機關偶',kind:'guard'},
- E_NEW_05:{name:'星燈石衛',kind:'stone'}, E_NEW_06:{name:'墨影劍侍',kind:'swordsman'},
- nether_lord_boss:{name:'墨影門主',kind:'boss'}
+ E_NEW_01:{name:'木人',kind:'wood'}, E_NEW_02:{name:'墨點',kind:'spirit'},
+ E_NEW_03:{name:'紙鳶',kind:'kite'}, E_NEW_04:{name:'竹偶',kind:'guard'},
+ E_NEW_05:{name:'石衛',kind:'stone'}, E_NEW_06:{name:'劍侍',kind:'swordsman'},
+ nether_lord_boss:{name:'大門主',kind:'boss'}
 };
 export const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
 export const cleanName=value=>Array.from(String(value??'').trim()).slice(0,20).join('');
