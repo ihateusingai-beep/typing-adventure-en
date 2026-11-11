@@ -20,7 +20,7 @@ import {EnemyDirector} from './enemy-director.mjs';
 import {CHALLENGE_STAGES,CHALLENGE_ENEMIES,CHALLENGE_ENEMY_IDS} from '../game-data/challenge-enemies.mjs';
 import {SaveStore} from './storage.mjs';
 import {initMedia,media,portraitHTML,Sprite,BattleEffects,Sound,watchArt,outfitThumbnail} from './media.mjs?v=cut1';
-import {readInputMode,writeInputMode,shouldShowVirtual,labelForCode,syntheticKeyEvent,virtKeyCodesForNode} from './input-mode.mjs';
+import {readVirtKeyboardOn,writeVirtKeyboardOn,migrateLegacyInputMode,labelForCode,syntheticKeyEvent,QWERTY_ROWS,HOME_ANCHORS,isCodeInLesson} from './input-mode.mjs';
 const $=s=>document.querySelector(s),screen=$('#screen'),modal=$('#modal'),worldMenu=$('#world-menu');
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const GAME_NAME='電腦打字大冒險';
@@ -121,54 +121,73 @@ function restartLesson(id=node?.id){
  renderBattle();sound.resume();
 }
 
-function currentInputMode(){
-  return readInputMode(store?.save?.settings||{});
-}
-function virtEnabled(){
+
+function virtKeyboardOn(){
   if(virtForceOn===true)return true;
   if(virtForceOn===false)return false;
-  return shouldShowVirtual(currentInputMode());
+  const s=store?.save?.settings||{};
+  if(typeof s.virtualKeyboard==='boolean')return s.virtualKeyboard;
+  return migrateLegacyInputMode(s);
 }
 function syncVirtBodyClass(){
-  const on=view==='battle'&&virtEnabled();
+  const on=view==='battle'&&virtKeyboardOn();
   document.body.classList.toggle('virt-on',on);
   return on;
 }
-function setInputMode(mode){
-  if(!['auto','phys','virt'].includes(mode))return;
-  writeInputMode(mode);
-  store.update({...store.save,settings:{...store.save.settings,inputMode:mode}},{settingsDirty:true});
+function setVirtKeyboard(on,{toastMsg=true}={}){
+  const v=!!on;
+  writeVirtKeyboardOn(v);
+  store.update({...store.save,settings:{...store.save.settings,virtualKeyboard:v,inputMode:v?'virt':'phys'}},{settingsDirty:true});
   virtForceOn=null;
   if(view==='battle'){refreshVirtBoard();screen.focus({preventScroll:true});}
   else if(view==='settings')renderSettings();
-  toast(mode==='virt'?'畫面大掣 mode':mode==='phys'?'淨用鍵盤 mode':'自動：iPad 會出畫面掣');
+  if(toastMsg)toast(v?'畫面鍵盤：開':'畫面鍵盤：關');
 }
 function virtBoardHTML(){
   if(!session||!node)return '';
   const t=targetOf(session);
-  const codes=virtKeyCodesForNode(node,t);
-  const needShift=!!(t&&(t.shift||t.kind==='case'));
   const expect=t?physicalCode(t.char):'';
-  const keys=[];
-  if(needShift||virtShiftHeld){
-    keys.push(`<button type="button" class="virt-key is-shift ${virtShiftHeld?'is-on':''}" data-action="virt-key" data-code="ShiftLeft" aria-pressed="${virtShiftHeld}">Shift</button>`);
-  }
-  for(const code of codes){
-    const lab=labelForCode(code);
-    const isT=code===expect;
-    const extra=code==='Space'?' is-space':'';
-    keys.push(`<button type="button" class="virt-key${extra}${isT?' is-target':''}" data-action="virt-key" data-code="${code}" aria-label="撳 ${lab}">${esc(lab)}</button>`);
-  }
-  return `<div class="virt-board" id="virt-board" aria-label="畫面鍵"><p class="virt-hint">用手指撳大掣 · 或者用鍵盤</p>${keys.join('')}</div>`;
+  const needShift=!!(t&&(t.shift||t.kind==='case'));
+  const rows=QWERTY_ROWS.map(row=>{
+    const keys=row.map(code=>{
+      const lab=labelForCode(code);
+      const isShift=code==='ShiftLeft'||code==='ShiftRight';
+      const isSpace=code==='Space';
+      const isT=!isShift&&code===expect;
+      const inLesson=isCodeInLesson(code,node,t);
+      const anchor=HOME_ANCHORS.has(code);
+      let cls='virt-key';
+      if(isShift)cls+=' is-shift';
+      if(virtShiftHeld&&isShift)cls+=' is-on';
+      if(isSpace)cls+=' is-space';
+      if(isT)cls+=' is-target';
+      if(inLesson&&!isT)cls+=' is-lesson';
+      if(anchor)cls+=' is-anchor';
+      const pressed=isShift?String(!!virtShiftHeld):'false';
+      return `<button type="button" class="${cls}" data-action="virt-key" data-code="${code}" aria-label="撳 ${lab}" aria-pressed="${isShift?pressed:'false'}">${esc(lab)}</button>`;
+    }).join('');
+    return `<div class="virt-row">${keys}</div>`;
+  }).join('');
+  return `<div class="virt-board" id="virt-board" aria-label="畫面鍵盤"><p class="virt-hint">畫面鍵盤 · 目標鍵會發光 · 都用得實體鍵</p>${rows}</div>`;
 }
 function virtToggleHTML(){
-  return `<div class="virt-toggle-row"><button type="button" class="text-link" data-action="toggle-virt">${virtEnabled()?'收起畫面掣':'開畫面大掣'}</button><button type="button" class="text-link" data-action="cycle-input-mode">輸入：${({auto:'自動',phys:'鍵盤',virt:'畫面'})[currentInputMode()]}</button></div>`;
+  const on=virtKeyboardOn();
+  return `<div class="virt-toggle-row"><button type="button" class="text-link" data-action="toggle-virt">${on?'關閉畫面鍵盤':'開啟畫面鍵盤'}</button></div>`;
 }
 function refreshVirtBoard(){
   const on=syncVirtBodyClass();
-  const board=$('#virt-board');
+  let board=$('#virt-board');
+  if(!on){
+    if(board){board.hidden=true;board.innerHTML='';}
+    const row=$('.virt-toggle-row');
+    if(row){const w=document.createElement('div');w.innerHTML=virtToggleHTML();row.replaceWith(w.firstElementChild);}
+    return;
+  }
+  if(!board){
+    const host=$('.story-playfield')||$('#battle-stage')||screen;
+    if(host){host.insertAdjacentHTML('beforeend', virtBoardHTML()+virtToggleHTML());board=$('#virt-board');}
+  }
   if(!board)return;
-  if(!on){board.hidden=true;return;}
   board.hidden=false;
   const wrap=document.createElement('div');
   wrap.innerHTML=virtBoardHTML();
@@ -176,6 +195,10 @@ function refreshVirtBoard(){
   if(next)board.replaceWith(next);
   const row=$('.virt-toggle-row');
   if(row){const w=document.createElement('div');w.innerHTML=virtToggleHTML();row.replaceWith(w.firstElementChild);}
+  else {
+    const b=$('#virt-board');
+    if(b)b.insertAdjacentHTML('afterend', virtToggleHTML());
+  }
 }
 function applyVirtKey(code){
   if(view!=='battle'||paused||!session||session.done)return;
@@ -384,9 +407,9 @@ function offerImport(){
  pendingModalClose=dismiss;
 }
 function renderSettings(){
- const mode=currentInputMode();
- const modeRow=`<div class="setting-row"><div><span class="setting-title" id="setting-inputMode">${gameIcon('keyboard')}點樣撳鍵</span><small>自動：iPad/手指會出畫面大掣；鍵盤：淨用實體鍵；畫面：成日顯示大掣</small></div><div class="mode-picker" role="group" aria-labelledby="setting-inputMode">${[['auto','自動'],['phys','鍵盤'],['virt','畫面']].map(([id,lab])=>`<button type="button" class="${mode===id?'active':''}" data-action="set-input-mode" data-id="${id}" aria-pressed="${mode===id}">${lab}</button>`).join('')}</div></div>`;
- setView('settings',frame(`<div class="chapter">照自己的節奏練習</div><h1>設定</h1>${modeRow}${[['autoAdvance','過關自動前進','結算後倒數六秒，接續下一關'],['muted','靜音','關閉音效'],['reducedMotion','減少動態','少啲閃同郁'],['highContrast','提高對比','字同目標更清楚']].map(([id,title,desc])=>`<div class="setting-row"><div><span class="setting-title" id="setting-${id}">${gameIcon(id==='muted'?'sound':id==='autoAdvance'?'next':id==='reducedMotion'?'shield':'settings')}${title}</span><small>${desc}</small></div><button class="toggle" data-action="toggle-setting" data-id="${id}" aria-pressed="${store.save.settings[id]}" aria-labelledby="setting-${id}"><i class="toggle-thumb" aria-hidden="true"></i><span>${store.save.settings[id]?'開':'關'}</span></button></div>`).join('')}<div class="settings-links">${secondary('account','儲存')}${secondary('home','返主頁')}</div><button class="text-link" data-action="privacy" style="align-self:flex-start;margin-top:20px">保存同隱私</button><p class="small" style="font-size:10px;margin-top:25px">打字練習 ${VERSION}</p>`,'settings-panel'));
+ const virtOn=virtKeyboardOn();
+ const virtRow=`<div class="setting-row"><div><span class="setting-title" id="setting-virtualKeyboard">${gameIcon('keyboard')}畫面鍵盤</span><small>開：戰鬥顯示完整 QWERTY 大掣（iPad 都用得）。關：淨用電腦／外接鍵盤。實體鍵隨時用得。</small></div><button class="toggle" data-action="toggle-setting" data-id="virtualKeyboard" aria-pressed="${virtOn}" aria-labelledby="setting-virtualKeyboard"><i class="toggle-thumb" aria-hidden="true"></i><span>${virtOn?'開':'關'}</span></button></div>`;
+ setView('settings',frame(`<div class="chapter">照自己的節奏練習</div><h1>設定</h1>${virtRow}${[['autoAdvance','過關自動前進','結算後倒數六秒，接續下一關'],['muted','靜音','關閉音效'],['reducedMotion','減少動態','少啲閃同郁'],['highContrast','提高對比','字同目標更清楚']].map(([id,title,desc])=>`<div class="setting-row"><div><span class="setting-title" id="setting-${id}">${gameIcon(id==='muted'?'sound':id==='autoAdvance'?'next':id==='reducedMotion'?'shield':'settings')}${title}</span><small>${desc}</small></div><button class="toggle" data-action="toggle-setting" data-id="${id}" aria-pressed="${store.save.settings[id]}" aria-labelledby="setting-${id}"><i class="toggle-thumb" aria-hidden="true"></i><span>${store.save.settings[id]?'開':'關'}</span></button></div>`).join('')}<div class="settings-links">${secondary('account','儲存')}${secondary('home','返主頁')}</div><button class="text-link" data-action="privacy" style="align-self:flex-start;margin-top:20px">保存同隱私</button><p class="small" style="font-size:10px;margin-top:25px">打字練習 ${VERSION}</p>`,'settings-panel'));
 }
 
 function normalizeRows(payload){
@@ -446,7 +469,7 @@ const actions={
  sync:async()=>{const current=store;const attempted=await current.retrySave();if(!attempted||current!==store)return;toast(current.status==='saved'?'目前進度已保存。':'保存尚未完成，冷卻後可重試，或匯出備份。');},logout:()=>{const run=async()=>{await store.logout();shortcutIndex=0;renderEntry();};if(store.pending||store.rewardQueue?.length)showModal('還有進度或靈石尚未保存','<p>可以返回重試保存，或確認放棄尚未同步的部分後登出。</p>',[{label:'返回保存',primary:true,fn:()=>{if(store.rewardQueue?.some(run=>run.kind==='challenge'))renderChallenges();else if(store.rewardQueue?.length)renderBoss();else store.flush();}},{label:'仍要登出',fn:run}]);else run();},
  'export-save':()=>{const url=URL.createObjectURL(new Blob([store.export()],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=GAME_NAME+'-英文紀錄.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},
  'import-save':()=>$('#import-file').click(),'import-legacy':()=>{showModal('帶入舊版個人最佳','<p>舊紀錄沒有帳號身分。確認這是自己的紀錄，再帶入五關與魔王最佳。<br>新劇情仍從第一節開始。</p>',[{label:'取消'},{label:'帶入我的舊紀錄',primary:true,fn:()=>{store.update(mergeSaves(store.save,store.legacyCandidate));store.legacyCandidate=null;renderAccount();}}]);},
- settings:renderSettings,'toggle-setting':b=>{if(b.dataset.id==='inputMode')return;store.update({...store.save,settings:{...store.save.settings,[b.dataset.id]:!store.save.settings[b.dataset.id]}},{settingsDirty:true});renderSettings();},'set-input-mode':b=>setInputMode(b.dataset.id),'cycle-input-mode':()=>{const order=['auto','phys','virt'];const i=order.indexOf(currentInputMode());setInputMode(order[(i+1)%order.length]);if(view==='battle')refreshVirtBoard();},'toggle-virt':()=>{virtForceOn=!virtEnabled();refreshVirtBoard();toast(virtEnabled()?'已開畫面大掣':'已收起畫面掣');},'virt-key':b=>{applyVirtKey(b.dataset.code);},
+ settings:renderSettings,'toggle-setting':b=>{if(b.dataset.id==='inputMode')return;if(b.dataset.id==='virtualKeyboard'){setVirtKeyboard(!virtKeyboardOn());return;}store.update({...store.save,settings:{...store.save.settings,[b.dataset.id]:!store.save.settings[b.dataset.id]}},{settingsDirty:true});renderSettings();},'toggle-virt':()=>{setVirtKeyboard(!virtKeyboardOn());},'virt-key':b=>{applyVirtKey(b.dataset.code);},
  leaderboard:()=>renderLeaderboard(),'rank-stage':b=>renderLeaderboard(Number(b.dataset.index)),'refresh-rank':()=>renderLeaderboard(),
  privacy:()=>showModal('你的旅程，自己的紀錄',`<p>進度保存在這台瀏覽器的本機空間。遊戲只記錄練習結果、章節、服裝和設定，不記錄其他網頁的鍵盤輸入。</p><p>此版本<strong>不使用 Google 登入</strong>，也不連線雲端帳號。</p><p class="small">${GAME_NAME} 為教學改寫版（英文）。</p>`,[{label:'知道了',primary:true}])
 };

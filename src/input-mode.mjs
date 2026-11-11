@@ -1,28 +1,31 @@
-/** Input mode: phys (外接/電腦鍵) | virt (畫面大掣) | auto */
-export const INPUT_MODE_KEY='typing_adventure_en_input_mode';
+/** Full QWERTY virtual keyboard helpers + on/off preference */
+export const VIRT_KB_KEY='typing_adventure_en_virt_kb';
 
-export function readInputMode(settings={}){
-  const fromSave=settings?.inputMode;
-  if(['auto','phys','virt'].includes(fromSave))return fromSave;
+export function readVirtKeyboardOn(settings={}){
+  if(typeof settings.virtualKeyboard==='boolean')return settings.virtualKeyboard;
   try{
-    const fromLs=localStorage.getItem(INPUT_MODE_KEY);
-    if(['auto','phys','virt'].includes(fromLs))return fromLs;
+    const ls=localStorage.getItem(VIRT_KB_KEY);
+    if(ls==='1'||ls==='true')return true;
+    if(ls==='0'||ls==='false')return false;
   }catch{}
-  return 'auto';
-}
-
-export function writeInputMode(mode){
-  if(!['auto','phys','virt'].includes(mode))return;
-  try{localStorage.setItem(INPUT_MODE_KEY,mode);}catch{}
-}
-
-/** auto: show virt on touch / no hover (iPad) */
-export function shouldShowVirtual(mode='auto'){
-  if(mode==='virt')return true;
-  if(mode==='phys')return false;
+  // default: on for touch / iPad, off for desktop mouse
   try{
     return matchMedia('(pointer:coarse)').matches||matchMedia('(hover:none)').matches||navigator.maxTouchPoints>0;
   }catch{return false;}
+}
+
+export function writeVirtKeyboardOn(on){
+  try{localStorage.setItem(VIRT_KB_KEY, on?'1':'0');}catch{}
+}
+
+/** legacy bridge for old auto/phys/virt saves */
+export function migrateLegacyInputMode(settings={}){
+  if(typeof settings.virtualKeyboard==='boolean')return settings.virtualKeyboard;
+  const m=settings.inputMode;
+  if(m==='virt')return true;
+  if(m==='phys')return false;
+  if(m==='auto')return readVirtKeyboardOn({});
+  return readVirtKeyboardOn(settings);
 }
 
 export function labelForCode(code){
@@ -39,9 +42,10 @@ export function labelForCode(code){
 }
 
 export function syntheticKeyEvent(code,{shiftKey=false}={}){
+  const lab=labelForCode(code);
   return {
     code,
-    key:labelForCode(code).length===1?labelForCode(code).toLowerCase():code,
+    key:lab.length===1?lab.toLowerCase():code,
     shiftKey:!!shiftKey,
     ctrlKey:false,metaKey:false,altKey:false,
     repeat:false,
@@ -51,28 +55,25 @@ export function syntheticKeyEvent(code,{shiftKey=false}={}){
   };
 }
 
-/** Build ordered unique virt keys from lesson allowedKeys + current target needs */
-export function virtKeyCodesForNode(node,target){
+/** Full QWERTY rows as event.code lists */
+export const QWERTY_ROWS=[
+  ['Digit1','Digit2','Digit3','Digit4','Digit5','Digit6','Digit7','Digit8','Digit9','Digit0','Minus'],
+  ['KeyQ','KeyW','KeyE','KeyR','KeyT','KeyY','KeyU','KeyI','KeyO','KeyP'],
+  ['KeyA','KeyS','KeyD','KeyF','KeyG','KeyH','KeyJ','KeyK','KeyL','Semicolon'],
+  ['ShiftLeft','KeyZ','KeyX','KeyC','KeyV','KeyB','KeyN','KeyM','Comma','Period','Slash'],
+  ['Space'],
+];
+
+/** Home-row anchors for SEN finger teaching */
+export const HOME_ANCHORS=new Set(['KeyF','KeyJ']);
+
+export function isCodeInLesson(code,node,target){
   const chars=new Set();
   for(const k of (node?.allowedKeys||[]))chars.add(String(k).toLowerCase());
   if(target?.char!=null)chars.add(String(target.char).toLowerCase());
-  if(target?.value)for(const c of target.value)chars.add(String(c).toLowerCase());
-  // stable home-row-ish order
-  const order='1234567890-qwertyuiopasdfghjkl;zxcvbnm,./ ';
-  const list=[...chars].filter(c=>c).sort((a,b)=>{
-    const ia=order.indexOf(a), ib=order.indexOf(b);
-    return (ia<0?999:ia)-(ib<0?999:ib);
-  });
-  const codes=[];
-  for(const c of list){
-    if(/^[a-z]$/.test(c))codes.push('Key'+c.toUpperCase());
-    else if(/^\d$/.test(c))codes.push('Digit'+c);
-    else if(c===';')codes.push('Semicolon');
-    else if(c===',')codes.push('Comma');
-    else if(c==='.')codes.push('Period');
-    else if(c==='/')codes.push('Slash');
-    else if(c==='-')codes.push('Minus');
-    else if(c===' ')codes.push('Space');
-  }
-  return codes;
+  if(target?.value)for(const c of String(target.value))chars.add(c.toLowerCase());
+  const lab=labelForCode(code).toLowerCase();
+  if(code==='Space')return chars.has(' ');
+  if(code==='ShiftLeft'||code==='ShiftRight')return true;
+  return chars.has(lab);
 }

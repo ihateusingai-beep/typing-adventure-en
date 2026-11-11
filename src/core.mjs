@@ -129,6 +129,9 @@ export function normalizeSave(raw){
     save.settings.inputMode=['auto','phys','virt'].includes(m)?m:'auto';
   }else save.settings[k]=raw.settings[k]===true;
 }
+if(typeof raw.settings?.virtualKeyboard==='boolean')save.settings.virtualKeyboard=raw.settings.virtualKeyboard;
+else if(raw.settings?.inputMode==='virt')save.settings.virtualKeyboard=true;
+else if(raw.settings?.inputMode==='phys')save.settings.virtualKeyboard=false;
  save.seenOutfitIds=availableOutfits(save).filter(o=>o.id==='O00'||Array.isArray(raw.seenOutfitIds)&&raw.seenOutfitIds.includes(o.id)).map(o=>o.id);
  if(availableTreasures(save).some(t=>t.id===raw.equippedTreasureId))save.equippedTreasureId=treasureId(raw.equippedTreasureId);
  if(availableEffects(save).some(o=>o.id===raw.equippedEffectId))save.equippedEffectId=raw.equippedEffectId;
