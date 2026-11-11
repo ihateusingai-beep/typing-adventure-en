@@ -20,6 +20,7 @@ import {EnemyDirector} from './enemy-director.mjs';
 import {CHALLENGE_STAGES,CHALLENGE_ENEMIES,CHALLENGE_ENEMY_IDS} from '../game-data/challenge-enemies.mjs';
 import {SaveStore} from './storage.mjs';
 import {initMedia,media,portraitHTML,Sprite,BattleEffects,Sound,watchArt,outfitThumbnail} from './media.mjs?v=cut1';
+import {readInputMode,writeInputMode,shouldShowVirtual,labelForCode,syntheticKeyEvent,virtKeyCodesForNode} from './input-mode.mjs';
 const $=s=>document.querySelector(s),screen=$('#screen'),modal=$('#modal'),worldMenu=$('#world-menu');
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const GAME_NAME='電腦打字大冒險';
@@ -38,6 +39,7 @@ let sceneSprites=[],selectedMission=null,guideEnemy=null,guideStage=0,guideDirec
 let bootstrapping=true;
 let selectedChallenge=0,entryNameDraft='',syncingRoutes=false;let wardrobeTab='outfits',outfitFilter='all',lastEndlessRun=null,lastChallengeRun=null;
 const held=new Set();let sceneTimer=null;let pendingModalClose=null;
+let virtShiftHeld=false;let virtForceOn=null;
 const shortcutCodes=[...'asdfghjklmn'].map(letter=>'Key'+letter.toUpperCase());
 let shortcutIndex=0,shortcutAt=0;
 const outfit=()=>OUTFITS.find(o=>o.id===store.save.equippedOutfitId)??OUTFITS[0];
@@ -59,6 +61,7 @@ function updateHeader(){
 }
 let riftArena=null;
 function setView(id,html,{scene='BG_YARD'}={}){
+ if(id!=='battle'){document.body.classList.remove('virt-on');virtShiftHeld=false;}
  if(view!==id)worldMenu.open=false;
  if(pvp){pvp.destroy();pvp=null;}
  if(riftArena){riftArena.destroy();riftArena=null;}
@@ -117,6 +120,80 @@ function restartLesson(id=node?.id){
  node=NODE_BY_ID[id];session=makeSession(node);session.approach='solo';
  renderBattle();sound.resume();
 }
+
+function currentInputMode(){
+  return readInputMode(store?.save?.settings||{});
+}
+function virtEnabled(){
+  if(virtForceOn===true)return true;
+  if(virtForceOn===false)return false;
+  return shouldShowVirtual(currentInputMode());
+}
+function syncVirtBodyClass(){
+  const on=view==='battle'&&virtEnabled();
+  document.body.classList.toggle('virt-on',on);
+  return on;
+}
+function setInputMode(mode){
+  if(!['auto','phys','virt'].includes(mode))return;
+  writeInputMode(mode);
+  store.update({...store.save,settings:{...store.save.settings,inputMode:mode}},{settingsDirty:true});
+  virtForceOn=null;
+  if(view==='battle'){refreshVirtBoard();screen.focus({preventScroll:true});}
+  else if(view==='settings')renderSettings();
+  toast(mode==='virt'?'畫面大掣 mode':mode==='phys'?'淨用鍵盤 mode':'自動：iPad 會出畫面掣');
+}
+function virtBoardHTML(){
+  if(!session||!node)return '';
+  const t=targetOf(session);
+  const codes=virtKeyCodesForNode(node,t);
+  const needShift=!!(t&&(t.shift||t.kind==='case'));
+  const expect=t?physicalCode(t.char):'';
+  const keys=[];
+  if(needShift||virtShiftHeld){
+    keys.push(`<button type="button" class="virt-key is-shift ${virtShiftHeld?'is-on':''}" data-action="virt-key" data-code="ShiftLeft" aria-pressed="${virtShiftHeld}">Shift</button>`);
+  }
+  for(const code of codes){
+    const lab=labelForCode(code);
+    const isT=code===expect;
+    const extra=code==='Space'?' is-space':'';
+    keys.push(`<button type="button" class="virt-key${extra}${isT?' is-target':''}" data-action="virt-key" data-code="${code}" aria-label="撳 ${lab}">${esc(lab)}</button>`);
+  }
+  return `<div class="virt-board" id="virt-board" aria-label="畫面鍵"><p class="virt-hint">用手指撳大掣 · 或者用鍵盤</p>${keys.join('')}</div>`;
+}
+function virtToggleHTML(){
+  return `<div class="virt-toggle-row"><button type="button" class="text-link" data-action="toggle-virt">${virtEnabled()?'收起畫面掣':'開畫面大掣'}</button><button type="button" class="text-link" data-action="cycle-input-mode">輸入：${({auto:'自動',phys:'鍵盤',virt:'畫面'})[currentInputMode()]}</button></div>`;
+}
+function refreshVirtBoard(){
+  const on=syncVirtBodyClass();
+  const board=$('#virt-board');
+  if(!board)return;
+  if(!on){board.hidden=true;return;}
+  board.hidden=false;
+  const wrap=document.createElement('div');
+  wrap.innerHTML=virtBoardHTML();
+  const next=wrap.firstElementChild;
+  if(next)board.replaceWith(next);
+  const row=$('.virt-toggle-row');
+  if(row){const w=document.createElement('div');w.innerHTML=virtToggleHTML();row.replaceWith(w.firstElementChild);}
+}
+function applyVirtKey(code){
+  if(view!=='battle'||paused||!session||session.done)return;
+  sound.unlock();
+  if(code==='ShiftLeft'||code==='ShiftRight'){
+    virtShiftHeld=!virtShiftHeld;
+    refreshVirtBoard();
+    const msg=$('#story-message');
+    if(msg)msg.textContent=virtShiftHeld?'Shift 開咗 · 再撳字母':'Shift 關咗';
+    return;
+  }
+  const shift=virtShiftHeld;
+  processKey(syntheticKeyEvent(code,{shiftKey:shift}));
+  if(shift&&code.startsWith('Key'))virtShiftHeld=false;
+  refreshVirtBoard();
+  screen.focus({preventScroll:true});
+}
+
 function keyboardHTML(){
  const t=targetOf(session);if(!t)return '';const char=BPMF_KEYS[t.char]??t.char.toLowerCase();let row='asdfghjkl;';if('1234567890-'.includes(char))row='1234567890-';else if('qwertyuiop'.includes(char))row='qwertyuiop';else if('zxcvbnm,./'.includes(char))row='zxcvbnm,./';else if(char===' ')row=' ';
  return `${t.shift?'<kbd class="lit">Shift</kbd>':''}${Array.from(row).map(k=>`<kbd class="${k===char?'lit':k==='f'||k==='j'?'anchor':''}">${esc(k===' '?'空白':typingMode==='zh-bpmf'?(BPMF_BY_KEY[k]??'·'):k.toUpperCase())}</kbd>`).join('')}`;
@@ -127,17 +204,18 @@ function targetHTML(){
  return `${t.shift?'<span class="shift-hint">Shift ＋</span>':''}${Array.from(t.value).map((char,i)=>`<span class="${i<session.progress?'done':i===session.progress?'current':''} ${char===' '?'space-char':''}">${esc(char===' '?'空白':t.kind==='word'||t.kind==='case'?char:char.toUpperCase())}</span>`).join('')}`;
 }
 function renderBattle(){
- const enemy=ENEMIES[node.enemyId],o=outfit();setView('battle',frame(`<div class="story-hud">${metrics(session,true)}<button class="quiet" data-action="pause">${gameIcon('pause')}停 Esc</button></div><div class="story-playfield"><div class="target-area"><div class="target-label" id="target-label">${routeLabel(typingMode)} / ${esc(missionFor(node).title)}</div><div class="target-word" id="target-word" aria-label="而家要撳">${targetHTML()}</div><div class="finger" id="finger">${esc(fingerFor(targetOf(session).char))} · 慢慢嚟得</div></div><div class="story-actors"><div class="actor-wrap hero-actor"><div id="hero-motion" aria-label="${esc(o.name)}"></div></div><div class="actor-wrap enemy-actor"><div id="enemy-motion" aria-label="${esc(enemy.name)}"></div><span class="enemy-intent" aria-hidden="true"></span><span class="actor-caption">${esc(enemy.name)}</span></div></div><div class="story-message" id="story-message" role="status" aria-live="polite">睇清楚，再撳。</div><div class="keyboard-hint" id="keyboard-hint" ${node.chapterId==='C01'?'':'hidden'}>${keyboardHTML()}</div><div class="battle-help-row"><button class="text-link" data-action="help-key">睇鍵盤</button><button class="text-link" data-action="demo">再睇示範</button></div><div class="no-keyboard">練習打字請使用實體鍵盤。</div></div>`,'battle',`id="battle-stage" data-node-id="${node.id}"`),{scene:node.backgroundId});
+ const enemy=ENEMIES[node.enemyId],o=outfit();setView('battle',frame(`<div class="story-hud">${metrics(session,true)}<button class="quiet" data-action="pause">${gameIcon('pause')}停</button></div><div class="story-playfield"><div class="target-area"><div class="target-label" id="target-label">${routeLabel(typingMode)} / ${esc(missionFor(node).title)}</div><div class="target-word" id="target-word" aria-label="而家要撳">${targetHTML()}</div><div class="finger" id="finger">${esc(fingerFor(targetOf(session).char))} · 慢慢嚟得</div></div><div class="story-actors"><div class="actor-wrap hero-actor"><div id="hero-motion" aria-label="${esc(o.name)}"></div></div><div class="actor-wrap enemy-actor"><div id="enemy-motion" aria-label="${esc(enemy.name)}"></div><span class="enemy-intent" aria-hidden="true"></span><span class="actor-caption">${esc(enemy.name)}</span></div></div><div class="story-message" id="story-message" role="status" aria-live="polite">睇清楚，再撳。</div><div class="keyboard-hint" id="keyboard-hint" ${node.chapterId==='C01'?'':'hidden'}>${keyboardHTML()}</div><div class="battle-help-row"><button class="text-link" data-action="help-key">睇鍵盤</button><button class="text-link" data-action="demo">再睇示範</button></div><div class="no-keyboard">可以用鍵盤，或者下面大掣。</div>${virtBoardHTML()}${virtToggleHTML()}</div>`,'battle',`id="battle-stage" data-node-id="${node.id}"`),{scene:node.backgroundId});
  const hero=new Sprite($('#hero-motion'),o.id,{reduced:reduced(),effectId:store.save.equippedEffectId,attackStyle:store.save.attackStyle,relicId:store.save.equippedTreasureId});const foe=new Sprite($('#enemy-motion'),node.enemyId,{enemy:true,reduced:reduced()});
  fx=new BattleEffects($('#battle-stage'),hero,foe,{reduced:reduced(),onCue:cue=>sound.play(cue, cue==='hurt'?.52:.48)});fx.setTarget(targetOf(session).kind);sound.bgm(node.chapterId==='C07'?'battle':'main');
+ virtShiftHeld=false;syncVirtBodyClass();screen.focus({preventScroll:true});
 }
 function showDemo({intro=false}={}){
  if(!session||session.done||view!=='battle')return;if(!intro)session.assisted=true;paused=true;fx?.pause();const t=targetOf(session);const code=t.kind==='word'?`照順序輸入「${t.value}」，亮起的是下一個字。`:t.kind==='guard'?`看到防禦提示，按 ${keyLabel(t.char)}。沒有倒數，先看清楚。`:t.shift?`按住 Shift，再撳 ${t.char}。`:`用${fingerFor(t.char)}找到 ${keyLabel(t.char)}，輕輕按一次。`;
  const key=t.shift?'Shift ＋ '+keyLabel(t.char):keyLabel(t.char);
- showModal('老師示範',`<p>${esc(code)}</p>${t.kind==='word'?`<div class="demo-word">${esc(t.value.replaceAll(' ','〔空白〕'))}</div>`:''}<button type="button" class="demo-key demo-confirm-key" data-demo-code="${physicalCode(t.char)}" data-demo-shift="${!!t.shift}" aria-label="用 ${esc(key)} 確認示範">${esc(key)}</button><p class="small">按 <kbd>Enter</kbd> 或 <kbd>${esc(key)}</kbd> 開始練習。這次確認不計分。</p>`,[{label:'我嚟',primary:true,fn:resumeBattle}]);
+ showModal('老師示範',`<p>${esc(code)}</p>${t.kind==='word'?`<div class="demo-word">${esc(t.value.replaceAll(' ','〔空白〕'))}</div>`:''}<button type="button" class="demo-key demo-confirm-key" data-demo-code="${physicalCode(t.char)}" data-demo-shift="${!!t.shift}" aria-label="用 ${esc(key)} 確認示範">${esc(key)}</button><p class="small">撳下面大掣，或者撳鍵盤 <kbd>${esc(key)}</kbd>。今次唔計分。</p>`,[{label:'我嚟',primary:true,fn:resumeBattle}]);
  modal.querySelector('[data-demo-code]').addEventListener('click',()=>modal.querySelector('[data-modal-index="0"]').click());
 }
-function resumeBattle(){paused=false;fx?.resume();screen.focus({preventScroll:true});sound.resume();}
+function resumeBattle(){paused=false;fx?.resume();syncVirtBodyClass();screen.focus({preventScroll:true});sound.resume();}
 function processKey(event){
  const result=applyInput(session,event);if(result.event==='ignored')return;
  session=result.state;const correct=result.event!=='wrong';if(correct)clearTimeout(sceneTimer);const move=result.event==='complete'?(result.target.kind==='guard'?'guard':result.target.kind==='word'?'word':'correct'):result.event;fx?.event(move,{combo:session.combo});
@@ -147,6 +225,7 @@ function processKey(event){
  $('#target-word').innerHTML=targetHTML();const current=targetOf(session);fx?.setTarget(current.kind);$('#finger').textContent=(current.shift?'按住 Shift，再撳字母':fingerFor(current.char))+' · 慢慢嚟得';$('#keyboard-hint').innerHTML=keyboardHTML();
  if(!correct){msg.textContent='✕ 唔啱。'+(session.errorStreak>=3?`先搵${fingerFor(current.char)}下嘅 ${keyLabel(current.char)}。慢慢嚟。`:`再撳 ${keyLabel(current.char)} 再試。`);if(session.errorStreak>=3)$('#keyboard-hint').hidden=false;if(session.errorStreak===5){sceneTimer=setTimeout(()=>{if(view==='battle'&&!paused)showDemo();},550);}}
  else{msg.textContent='✓ 啱喇 · '+(result.event==='guard'?'守住了！看準再出下一招。':result.event==='word'?'這一串完成了，穩穩的一招。':session.combo%5===0?`${session.combo} 連中，越來越穩了。`:'下一個。');}
+ refreshVirtBoard();
 }
 function finishLesson(){
  clearTimeout(sceneTimer);const result=sessionResult(session),before=store.save.nodeRecords[node.id]?.bestResult,oldStars=nodeStars(store.save,node.id);const completed=completeNode(store.save,node.id,result);lastResult={newTreasures:availableTreasures(completed.save).filter(t=>!availableTreasures(store.save).some(old=>old.id===t.id)),result,before,rewards:completed.newOutfits,node,newStars:Math.max(0,nodeStars(completed.save,node.id)-oldStars)};store.update(completed.save);
@@ -305,9 +384,11 @@ function offerImport(){
  pendingModalClose=dismiss;
 }
 function renderSettings(){
- setView('settings',frame(`<div class="chapter">照自己的節奏練習</div><h1>設定與紀錄</h1>${[['autoAdvance','過關自動前進','結算後倒數六秒，接續下一個任務'],['muted','靜音','關閉音效與背景音樂'],['reducedMotion','減少動態','保留姿勢與文字，減少位移與閃光'],['highContrast','提高對比','讓文字與目標更清楚']].map(([id,title,desc])=>`<div class="setting-row"><div><span class="setting-title" id="setting-${id}">${gameIcon(id==='muted'?'sound':id==='autoAdvance'?'next':id==='reducedMotion'?'shield':'settings')}${title}</span><small>${desc}</small></div><button class="toggle" data-action="toggle-setting" data-id="${id}" aria-pressed="${store.save.settings[id]}" aria-labelledby="setting-${id}"><i class="toggle-thumb" aria-hidden="true"></i><span>${store.save.settings[id]?'開啟':'關閉'}</span></button></div>`).join('')}<div class="settings-links">${secondary('endless-ranking','無盡排行榜')}${secondary('account','帳號與保存')}${secondary('leaderboard','排行榜')}${secondary('home','返主頁')}</div><button class="text-link" data-action="privacy" style="align-self:flex-start;margin-top:20px">保存與隱私</button><p class="small" style="font-size:10px;margin-top:25px">打字練習 ${VERSION}</p>`,'settings-panel'));
+ const mode=currentInputMode();
+ const modeRow=`<div class="setting-row"><div><span class="setting-title" id="setting-inputMode">${gameIcon('keyboard')}點樣撳鍵</span><small>自動：iPad/手指會出畫面大掣；鍵盤：淨用實體鍵；畫面：成日顯示大掣</small></div><div class="mode-picker" role="group" aria-labelledby="setting-inputMode">${[['auto','自動'],['phys','鍵盤'],['virt','畫面']].map(([id,lab])=>`<button type="button" class="${mode===id?'active':''}" data-action="set-input-mode" data-id="${id}" aria-pressed="${mode===id}">${lab}</button>`).join('')}</div></div>`;
+ setView('settings',frame(`<div class="chapter">照自己的節奏練習</div><h1>設定</h1>${modeRow}${[['autoAdvance','過關自動前進','結算後倒數六秒，接續下一關'],['muted','靜音','關閉音效'],['reducedMotion','減少動態','少啲閃同郁'],['highContrast','提高對比','字同目標更清楚']].map(([id,title,desc])=>`<div class="setting-row"><div><span class="setting-title" id="setting-${id}">${gameIcon(id==='muted'?'sound':id==='autoAdvance'?'next':id==='reducedMotion'?'shield':'settings')}${title}</span><small>${desc}</small></div><button class="toggle" data-action="toggle-setting" data-id="${id}" aria-pressed="${store.save.settings[id]}" aria-labelledby="setting-${id}"><i class="toggle-thumb" aria-hidden="true"></i><span>${store.save.settings[id]?'開':'關'}</span></button></div>`).join('')}<div class="settings-links">${secondary('account','儲存')}${secondary('home','返主頁')}</div><button class="text-link" data-action="privacy" style="align-self:flex-start;margin-top:20px">保存同隱私</button><p class="small" style="font-size:10px;margin-top:25px">打字練習 ${VERSION}</p>`,'settings-panel'));
 }
-let rankStage=1;
+
 function normalizeRows(payload){
  const source=payload?.top3ByStage??payload?.leaderboard??payload?.stages??payload;
  if(Array.isArray(source)){return source.filter(r=>Number(r.stageId??r.stage??rankStage)===rankStage);}
@@ -365,7 +446,7 @@ const actions={
  sync:async()=>{const current=store;const attempted=await current.retrySave();if(!attempted||current!==store)return;toast(current.status==='saved'?'目前進度已保存。':'保存尚未完成，冷卻後可重試，或匯出備份。');},logout:()=>{const run=async()=>{await store.logout();shortcutIndex=0;renderEntry();};if(store.pending||store.rewardQueue?.length)showModal('還有進度或靈石尚未保存','<p>可以返回重試保存，或確認放棄尚未同步的部分後登出。</p>',[{label:'返回保存',primary:true,fn:()=>{if(store.rewardQueue?.some(run=>run.kind==='challenge'))renderChallenges();else if(store.rewardQueue?.length)renderBoss();else store.flush();}},{label:'仍要登出',fn:run}]);else run();},
  'export-save':()=>{const url=URL.createObjectURL(new Blob([store.export()],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=GAME_NAME+'-英文紀錄.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},
  'import-save':()=>$('#import-file').click(),'import-legacy':()=>{showModal('帶入舊版個人最佳','<p>舊紀錄沒有帳號身分。確認這是自己的紀錄，再帶入五關與魔王最佳。<br>新劇情仍從第一節開始。</p>',[{label:'取消'},{label:'帶入我的舊紀錄',primary:true,fn:()=>{store.update(mergeSaves(store.save,store.legacyCandidate));store.legacyCandidate=null;renderAccount();}}]);},
- settings:renderSettings,'toggle-setting':b=>{store.update({...store.save,settings:{...store.save.settings,[b.dataset.id]:!store.save.settings[b.dataset.id]}},{settingsDirty:true});renderSettings();},
+ settings:renderSettings,'toggle-setting':b=>{if(b.dataset.id==='inputMode')return;store.update({...store.save,settings:{...store.save.settings,[b.dataset.id]:!store.save.settings[b.dataset.id]}},{settingsDirty:true});renderSettings();},'set-input-mode':b=>setInputMode(b.dataset.id),'cycle-input-mode':()=>{const order=['auto','phys','virt'];const i=order.indexOf(currentInputMode());setInputMode(order[(i+1)%order.length]);if(view==='battle')refreshVirtBoard();},'toggle-virt':()=>{virtForceOn=!virtEnabled();refreshVirtBoard();toast(virtEnabled()?'已開畫面大掣':'已收起畫面掣');},'virt-key':b=>{applyVirtKey(b.dataset.code);},
  leaderboard:()=>renderLeaderboard(),'rank-stage':b=>renderLeaderboard(Number(b.dataset.index)),'refresh-rank':()=>renderLeaderboard(),
  privacy:()=>showModal('你的旅程，自己的紀錄',`<p>進度保存在這台瀏覽器的本機空間。遊戲只記錄練習結果、章節、服裝和設定，不記錄其他網頁的鍵盤輸入。</p><p>此版本<strong>不使用 Google 登入</strong>，也不連線雲端帳號。</p><p class="small">${GAME_NAME} 為教學改寫版（英文）。</p>`,[{label:'知道了',primary:true}])
 };
@@ -468,7 +549,7 @@ window.addEventListener('keydown',event=>{
  if(view==='dialogue'&&(event.code==='Enter'||event.code==='Space')){event.preventDefault();nextLine();return;}
  if(view!=='battle'||paused)return;if(event.code==='Escape'){event.preventDefault();pauseBattle();return;}
  if(event.target instanceof HTMLButtonElement&&(event.code==='Space'||event.code==='Enter'))return;
- if(physicalKey(event.code)!==null){event.preventDefault();sound.unlock();processKey(event);}
+ if(physicalKey(event.code)!==null){event.preventDefault();sound.unlock();processKey(event);if(view==='battle')screen.focus({preventScroll:true});}
 });
 window.addEventListener('keyup',e=>{if(e.code)held.delete(e.code);else held.clear();});
 window.addEventListener('blur',()=>{held.clear();shortcutIndex=0;if(view==='battle'&&!paused)pauseBattle();});

@@ -40,7 +40,7 @@ const int=(v,max=100000000)=>Number.isFinite(Number(v))?clamp(Math.round(Number(
 export const accuracy=s=>s.attempted?Math.round(s.correct/s.attempted*100):null;
 export const uid=()=>globalThis.crypto?.randomUUID?.() ?? `r-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 export function blankSave(name='') {
- return {schemaVersion:3,contentVersion:'story-v1',revision:0,displayName:cleanName(name),completedNodeIds:[],nodeRecords:{},equippedOutfitId:'O00',seenOutfitIds:['O00'],collection:blankCollection(),equippedEffectId:'auto',attackStyle:'sword',equippedTreasureId:'none',challengeBest:{},bossBest:{score:0,rounds:0,accuracy:0,attempted:0,rulesVersion:'legacy-v2'},settings:{muted:false,reducedMotion:false,highContrast:false,autoAdvance:true},updatedAt:null};
+ return {schemaVersion:3,contentVersion:'story-v1',revision:0,displayName:cleanName(name),completedNodeIds:[],nodeRecords:{},equippedOutfitId:'O00',seenOutfitIds:['O00'],collection:blankCollection(),equippedEffectId:'auto',attackStyle:'sword',equippedTreasureId:'none',challengeBest:{},bossBest:{score:0,rounds:0,accuracy:0,attempted:0,rulesVersion:'legacy-v2'},settings:{muted:false,reducedMotion:false,highContrast:false,autoAdvance:true,inputMode:'auto'},updatedAt:null};
 }
 export function availableOutfits(save){const limited=limitedProgress(save).unlocked;return OUTFITS.filter(o=>o.category==='rift'?save.collection?.forge?.crafted.includes('outfit-'+o.id):(o.category!=='limited'||limited)&&(o.item?save.collection?.items?.includes(o.item):!o.node||save.completedNodeIds.includes(o.node)));}
 export const availableEffects=save=>EFFECTS.filter(e=>!e.item&&!e.outfit||e.item&&save.collection?.items?.includes(e.item)||e.outfit&&availableOutfits(save).some(o=>o.id===e.outfit));
@@ -122,7 +122,13 @@ export function normalizeSave(raw){
   save.challengeBest[key]={...normalizeResult(r),accuracy:int(r.accuracy,100),stars:int(r.stars,3),grade:['S','A','B','C','D'].includes(r.grade)?r.grade:'D',rulesVersion:'legacy-v2'};
  }
  save.bossBest={score:int(raw.bossBest?.score),rounds:int(raw.bossBest?.rounds,100000),accuracy:int(raw.bossBest?.accuracy,100),attempted:int(raw.bossBest?.attempted,100000),rulesVersion:'legacy-v2'};
- for(const k of Object.keys(save.settings))if(raw.settings?.[k]!==undefined)save.settings[k]=raw.settings[k]===true;
+ for(const k of Object.keys(save.settings)){
+  if(raw.settings?.[k]===undefined)continue;
+  if(k==='inputMode'){
+    const m=String(raw.settings.inputMode||'auto');
+    save.settings.inputMode=['auto','phys','virt'].includes(m)?m:'auto';
+  }else save.settings[k]=raw.settings[k]===true;
+}
  save.seenOutfitIds=availableOutfits(save).filter(o=>o.id==='O00'||Array.isArray(raw.seenOutfitIds)&&raw.seenOutfitIds.includes(o.id)).map(o=>o.id);
  if(availableTreasures(save).some(t=>t.id===raw.equippedTreasureId))save.equippedTreasureId=treasureId(raw.equippedTreasureId);
  if(availableEffects(save).some(o=>o.id===raw.equippedEffectId))save.equippedEffectId=raw.equippedEffectId;
