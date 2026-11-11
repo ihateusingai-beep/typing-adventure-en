@@ -4,7 +4,7 @@ import {LIMITED_COSTUMES} from '../game-data/limited-costumes.mjs';
 import {availableTreasures,treasureId} from '../game-data/spirit-treasures.mjs';
 import {blankCollection,normalizeCollection,limitedProgress,EFFECTS,ATTACK_STYLES} from './collection.mjs';
 import {BPMF_KEYS,physicalKey} from './keyboard.mjs';
-import { CURRICULUM } from '../game-data/curriculum.mjs';
+import { CURRICULUM } from '../game-data/curriculum.mjs?v=sen1';
 export const NODES = CURRICULUM.nodes;
 export const CHAPTERS = CURRICULUM.chapters;
 export const NODE_BY_ID = Object.fromEntries(NODES.map(n => [n.id, n]));
