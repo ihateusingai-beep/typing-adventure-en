@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="zh-Hant"><head>
-    <base href="./"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#102b27"><title>電腦打字大冒險｜英文打字</title>
-    <meta name="description" content="用鍵盤練英文。由 F、J 開始。本機儲存，唔使登入。">
+    <base href="./"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#102b27"><title>電腦打字大冒險｜將軍澳培智學校</title>
+    <meta name="description" content="將軍澳培智學校 · 用鍵盤練英文。由 F、J 開始。本機儲存，唔使登入。">
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="電腦打字大冒險">
+    <meta property="og:site_name" content="將軍澳培智學校 · 電腦打字大冒險">
     <meta property="og:locale" content="zh_TW">
-    <meta property="og:title" content="電腦打字大冒險｜英文打字">
-    <meta property="og:description" content="用實體鍵盤練習英文打字。從 F、J 開始，循序解鎖劇情與服裝。本機存檔，無需登入。">
-    <link rel="icon" href="assets/ui/portrait.png">
+    <meta property="og:title" content="電腦打字大冒險｜將軍澳培智學校">
+    <meta property="og:description" content="用實體鍵盤練習英文打字。從 F、J 開始。本機存檔，無需登入。">
+    <link rel="icon" href="assets/brand/puichi-logo.png">
     <link rel="stylesheet" href="styles/app.css">
     <link rel="stylesheet" href="styles/sign-in.css">
     <link rel="stylesheet" href="styles/missions.css">
@@ -28,5 +28,50 @@
     <link rel="stylesheet" href="styles/menu-v321.css">
     <link rel="stylesheet" href="styles/virt-keyboard.css">
     <link rel="stylesheet" href="styles/drill.css">
+    <link rel="stylesheet" href="styles/brand.css">
 </head>
-<body><div id="app-shell"><header class="world-header"><button class="brand-button" data-action="home" aria-label="返主頁">電腦打字大冒險<span>英文</span></button><nav aria-label="選單"><span id="player-badge" class="player-badge"></span><details id="world-menu" class="world-menu"><summary aria-label="開選單"><span class="menu-glyph" aria-hidden="true">☰</span><span>選單</span></summary><div class="world-menu-panel"><div class="world-menu-top"><b>選單</b><span id="save-status" role="status"></span></div><div id="route-switch" class="route-switch" hidden></div><button class="header-button" data-action="account">儲存</button><button class="header-button" data-action="settings">設定</button><button class="header-button desktop-fullscreen" data-action="fullscreen" aria-pressed="false" aria-keyshortcuts="F10">全螢幕</button></div></details></nav></header><main id="screen" tabindex="-1"><section class="loading-state"><div class="eyebrow">英文打字</div><h1>電腦打字大冒險</h1><p>用鍵盤練英文。由 F 開始。</p><noscript><p>遊戲需要啟用 JavaScript。</p></noscript></section></main><nav id="game-dock" class="game-dock" aria-label="遊戲主選單"></nav></div><dialog id="modal" aria-labelledby="modal-title"></dialog><div id="toast" class="toast" role="status" aria-live="polite"></div><script type="module" src="src/main.mjs?v=ward1"></script></body></html>
+<body>
+<div id="app-shell">
+  <header class="world-header">
+    <button type="button" class="school-brand" data-action="home" aria-label="將軍澳培智學校 · 返主頁">
+      <img src="assets/brand/puichi-logo.png" width="48" height="48" alt="將軍澳培智學校校徽">
+      <span class="school-text">
+        <span class="school-name">將軍澳培智學校</span>
+        <span class="game-title-line">電腦打字大冒險<small>英文</small></span>
+      </span>
+    </button>
+    <nav aria-label="選單">
+      <span id="player-badge" class="player-badge"></span>
+      <button type="button" class="header-voice-toggle" data-action="toggle-voice" aria-pressed="true" title="文字朗讀">🔊 朗讀</button>
+      <details id="world-menu" class="world-menu">
+        <summary aria-label="開選單"><span class="menu-glyph" aria-hidden="true">☰</span><span>選單</span></summary>
+        <div class="world-menu-panel">
+          <div class="world-menu-top"><b>選單</b><span id="save-status" role="status"></span></div>
+          <div id="route-switch" class="route-switch" hidden></div>
+          <button class="header-button" data-action="account">儲存</button>
+          <button class="header-button" data-action="settings">設定</button>
+          <button class="header-button desktop-fullscreen" data-action="fullscreen" aria-pressed="false" aria-keyshortcuts="F10">全螢幕</button>
+        </div>
+      </details>
+    </nav>
+  </header>
+  <main id="screen" tabindex="-1">
+    <section class="loading-state">
+      <div class="eyebrow">將軍澳培智學校</div>
+      <h1>電腦打字大冒險</h1>
+      <p>用鍵盤練英文。由 F 開始。</p>
+      <noscript><p>遊戲需要啟用 JavaScript。</p></noscript>
+    </section>
+  </main>
+  <nav id="game-dock" class="game-dock" aria-label="遊戲主選單"></nav>
+  <footer class="world-footer">
+    <a class="ken-brand" href="https://github.com/ihateusingai-beep" target="_blank" rel="noopener noreferrer">
+      <img src="assets/brand/ken-cheng-logo.png" width="28" height="34" alt="Ken Cheng">
+      <span>Ken Cheng</span>
+    </a>
+  </footer>
+</div>
+<dialog id="modal" aria-labelledby="modal-title"></dialog>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script type="module" src="src/main.mjs?v=brand1"></script>
+</body></html>

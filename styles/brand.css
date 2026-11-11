@@ -1,0 +1,65 @@
+/* 校徽 + Ken footer + 朗讀掣 */
+.world-header{
+  gap:12px;
+}
+.school-brand{
+  display:flex;align-items:center;gap:10px;min-width:0;flex:1;
+  text-decoration:none;color:inherit;background:none;border:0;padding:0;
+  cursor:pointer;text-align:left;
+}
+.school-brand img{
+  width:48px;height:48px;object-fit:contain;flex-shrink:0;
+  border-radius:8px;background:#fff2;box-shadow:0 2px 8px #0003;
+}
+.school-brand .school-text{min-width:0;display:flex;flex-direction:column;gap:2px;}
+.school-brand .school-name{
+  font:600 13px/1.25 "PingFang TC","Noto Sans TC",sans-serif;
+  color:#dce8c8;letter-spacing:.5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(42vw,280px);
+}
+.school-brand .game-title-line{
+  font:22px/1.2 Wuxia,serif;color:#e6d6a2;letter-spacing:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(48vw,340px);
+}
+.school-brand .game-title-line small{
+  display:inline;font:11px/1 "PingFang TC",sans-serif;color:#90ac94;margin-left:6px;letter-spacing:2px;
+}
+
+.world-footer{
+  display:flex;justify-content:center;align-items:center;
+  gap:10px;min-height:52px;padding:6px 8px 10px;
+  border-top:1px solid #b7d0ac18;color:#76927e;font-size:11px;
+}
+.world-footer .ken-brand{
+  display:inline-flex;align-items:center;gap:8px;
+  text-decoration:none;color:#8eaa91;
+}
+.world-footer .ken-brand img{
+  width:28px;height:34px;object-fit:contain;opacity:.92;
+}
+.world-footer .ken-brand span{letter-spacing:1px;}
+
+.speak-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:40px;min-height:40px;padding:6px 10px;margin-left:8px;
+  border:1px solid #b8cdaa55;border-radius:8px;
+  background:#163e2b;color:#e8efd2;font-size:16px;line-height:1;
+  vertical-align:middle;cursor:pointer;
+}
+.speak-btn:hover{background:#1f5240}
+.speak-btn.is-on{box-shadow:0 0 0 2px #c5d89a44}
+.speech-row{display:flex;align-items:flex-start;gap:8px}
+.speech-row .speech{flex:1;margin:0}
+.header-voice-toggle{
+  border:1px solid #b8cdaa33;color:#c9d7be;background:none;border-radius:5px;
+  padding:8px 10px;font-size:12px;min-height:40px;
+}
+.header-voice-toggle[aria-pressed="true"]{background:#2a4f3a;color:#e8efd2}
+
+@media(max-width:700px){
+  .school-brand img{width:40px;height:40px}
+  .school-brand .school-name{font-size:11px;max-width:38vw}
+  .school-brand .game-title-line{font-size:16px;max-width:42vw}
+  .world-footer{min-height:44px}
+  .world-footer .ken-brand img{width:22px;height:28px}
+}

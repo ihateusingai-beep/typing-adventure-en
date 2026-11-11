@@ -12,6 +12,7 @@ import {approachFor} from './approaches.mjs?v=sen1';
 import {launchProjectile} from './costumes.mjs';
 import {collectionTabs,collectionBody,gemIcon} from './collection-ui.mjs';
 import {DRAW_POOL,EFFECTS,ATTACK_STYLES,endlessReward,endlessGrade,normalizeCollection} from './collection.mjs';
+import {speakText,stopSpeak,voiceOn,speakButton} from './tts.mjs';
 import {unseenOutfits,markOutfitSeen,nextMissionId,AdvanceClock} from './rewards.mjs';
 import {BPMF_KEYS,BPMF_BY_KEY,physicalKey,routeKey,routeLabel} from './keyboard.mjs';
 import {NODES as EN_NODES,CHAPTERS as EN_CHAPTERS,NODE_BY_ID as EN_NODE_BY_ID,OUTFITS,ENEMIES,VERSION,blankSave,cleanName,accuracy,nextNode as englishNextNode,canStartNode,bossUnlocked,availableOutfits,availableEffects,availableAttacks,makeSession,targetOf,physicalCode,applyInput,sessionResult,completeNode,fingerFor,keyLabel,normalizeSave,mergeSaves,unlockDifferences,uid,resultStars,nodeStars,chapterStars,totalStars} from './core.mjs?v=sen1';
@@ -19,7 +20,7 @@ import {CHAPTER_COPY as EN_CHAPTER_COPY,openingFor as englishOpeningFor,closingF
 import {EnemyDirector} from './enemy-director.mjs';
 import {CHALLENGE_STAGES,CHALLENGE_ENEMIES,CHALLENGE_ENEMY_IDS} from '../game-data/challenge-enemies.mjs';
 import {SaveStore} from './storage.mjs';
-import {initMedia,media,portraitHTML,Sprite,BattleEffects,Sound,watchArt,outfitThumbnail} from './media.mjs?v=ward1';
+import {initMedia,media,portraitHTML,Sprite,BattleEffects,Sound,watchArt,outfitThumbnail} from './media.mjs?v=brand1';
 import {readVirtKeyboardOn,writeVirtKeyboardOn,migrateLegacyInputMode,labelForCode,syntheticKeyEvent,QWERTY_ROWS,HOME_ANCHORS,isCodeInLesson} from './input-mode.mjs';
 import {DRILL_GROUPS,DRILL_GOAL,makeDrillNode,drillCodes,drillGroup} from './drill.mjs';
 const $=s=>document.querySelector(s),screen=$('#screen'),modal=$('#modal'),worldMenu=$('#world-menu');
@@ -84,7 +85,8 @@ function frame(content,classes='',attrs=''){return `<section class="frame"><div 
 function metrics(result,ids=false){const acc=accuracy(result);return `<div class="metrics" aria-label="今次"><div class="metric"><span class="metric-label">${gameIcon('target')}啱幾多</span><b ${ids?'id="stat-acc"':''}>${acc===null?'—':acc+'%'}</b></div><div class="metric"><span class="metric-label">${gameIcon('combo')}連中</span><b ${ids?'id="stat-combo"':''}>${result.combo??result.maxCombo??0}</b></div><div class="metric"><span class="metric-label">${gameIcon('score')}分數</span><b ${ids?'id="stat-score"':''}>${result.score??0}</b></div></div>`;}
 function updateEntryLogin(){/* local-only fork: no cloud login */}
 function renderEntry(){
- sound.bgm('title');setView('entry',frame(`<div class="entry-copy"><div class="chapter">${GAME_NAME} / 英文</div><h1>一齊學打字啦。</h1><p>由 F、J 開始。<br>直接撳鍵，唔使轉輸入法。進度自動儲存，唔使登入。</p><form id="name-form"><label for="player-name">名（可以唔填）</label><input id="player-name" name="name" maxlength="40" autocomplete="off" placeholder="同學" value="${esc(entryNameDraft)}">${secondary('submit-name','開始','type="submit"')}</form>${store.guestAvailable?.completedNodeIds.length?'<button class="text-link" data-action="resume-guest">繼續呢部機嘅進度</button>':''}</div><div class="entry-portrait">${portraitHTML('MASTER','encouraging')}</div>`,'entry'));
+ sound.bgm('title');setView('entry',frame(`<div class="entry-copy"><div class="chapter">將軍澳培智學校 · 英文</div><h1>一齊學打字啦。</h1><p>由 F、J 開始。<br>直接撳鍵，唔使轉輸入法。進度自動儲存，唔使登入。</p><form id="name-form"><label for="player-name">名（可以唔填）</label><input id="player-name" name="name" maxlength="40" autocomplete="off" placeholder="同學" value="${esc(entryNameDraft)}">${secondary('submit-name','開始','type="submit"')}</form>${store.guestAvailable?.completedNodeIds.length?'<button class="text-link" data-action="resume-guest">繼續呢部機嘅進度</button>':''}</div><div class="entry-portrait">${portraitHTML('MASTER','encouraging')}</div>`,'entry'));
+ syncVoiceChrome();
  $('#name-form').addEventListener('submit',event=>{event.preventDefault();if(event.currentTarget.querySelector('button').disabled)return;const name=cleanName($('#player-name').value)||'同學';const enter=fresh=>{store.update({...fresh?blankSave(name):store.save,displayName:name},{nameDirty:true});entryNameDraft='';renderHome();};if(store.guestAvailable?.completedNodeIds.length){showModal('繼續之前嘅進度？','<p>呢部瀏覽器有進度。係你嘅就繼續；唔係就由頭嚟。</p>',[{label:'由頭嚟',fn:()=>enter(true)},{label:'繼續',primary:true,fn:()=>enter(false)}]);}else enter(false);});
 }
 function renderHome(){
@@ -110,9 +112,25 @@ function renderDialogue(lines,onDone,{skippable=false,choices=false}={}){
 }
 function showDialogueLine(){
  const d=dialogue,line=d.lines[d.index];const name=line.speaker==='HERO'?(store.save.displayName||'同學'):SPEAKERS[line.speaker];
- setView('dialogue',frame(`<div class="topline"><button class="quiet" data-action="leave-lesson">← 主頁</button><span class="dialogue-stage-name">${esc(node?missionFor(node).title:'打字練習')}</span></div><div class="dialogue-art">${portraitHTML(line.speaker==='HERO'?outfit().id:line.speaker,line.expression)}</div><div class="dialogue-copy"><p class="speaker">${esc(name)}</p><p class="speech">${esc(line.text)}</p><div class="dialogue-actions">${primary('next-line',d.index===d.lines.length-1?(d.onDone===renderStoryResult?'睇成績':d.choices?approachFor(node).observe+' · Enter →':'得喇'):'繼續')}${d.choices&&d.index===d.lines.length-1?`<button class="secondary" data-action="dialogue-choice" data-id="solo">${esc(approachFor(node).solo)}</button><button class="text-link" data-action="dialogue-choice" data-id="ask">${esc(approachFor(node).ask)}</button>`:''}<span class="dialogue-step">${d.index+1} / ${d.lines.length}</span>${d.skippable?'<button class="text-link" data-action="skip-lines">略過已讀對話</button>':''}</div></div>`,'dialogue'),{scene:node?.backgroundId??'forest'});
+ setView('dialogue',frame(`<div class="topline"><button class="quiet" data-action="leave-lesson">← 主頁</button><span class="dialogue-stage-name">${esc(node?missionFor(node).title:'打字練習')}</span></div><div class="dialogue-art">${portraitHTML(line.speaker==='HERO'?outfit().id:line.speaker,line.expression)}</div><div class="dialogue-copy"><p class="speaker">${esc(name)}</p><div class="speech-row"><p class="speech" data-speak-text="${esc(line.text)}">${esc(line.text)}</p>${speakButton('icon')}</div><div class="dialogue-actions">${primary('next-line',d.index===d.lines.length-1?(d.onDone===renderStoryResult?'睇成績':d.choices?approachFor(node).observe+' · Enter →':'得喇'):'繼續')}${d.choices&&d.index===d.lines.length-1?`<button class="secondary" data-action="dialogue-choice" data-id="solo">${esc(approachFor(node).solo)}</button><button class="text-link" data-action="dialogue-choice" data-id="ask">${esc(approachFor(node).ask)}</button>`:''}<span class="dialogue-step">${d.index+1} / ${d.lines.length}</span>${d.skippable?'<button class="text-link" data-action="skip-lines">略過已讀對話</button>':''}</div></div>`,'dialogue'),{scene:node?.backgroundId??'forest'});
+ speakText(`${name}。${line.text}`,{save:store.save});
+ syncVoiceChrome();
 }
-function nextLine(skip=false){if(!dialogue)return;const d=dialogue;if(skip||++d.index>=d.lines.length){dialogue=null;d.onDone(d.choices?{demo:true}:undefined);}else showDialogueLine();}
+function nextLine(skip=false){if(!dialogue)return;stopSpeak();const d=dialogue;if(skip||++d.index>=d.lines.length){dialogue=null;d.onDone(d.choices?{demo:true}:undefined);}else showDialogueLine();}
+function syncVoiceChrome(){
+  const on=voiceOn(store?.save);
+  document.body.dataset.voice=on?'on':'off';
+  const b=document.querySelector('.header-voice-toggle');
+  if(b){b.setAttribute('aria-pressed',String(on));b.textContent=on?'🔊 朗讀':'🔇 朗讀';b.title=on?'文字朗讀：開（再撳關閉）':'文字朗讀：關（再撳開啟）';}
+}
+function toggleVoiceRead(){
+  const on=!voiceOn(store.save);
+  store.update({...store.save,settings:{...store.save.settings,voiceRead:on}},{settingsDirty:true});
+  if(!on)stopSpeak();
+  syncVoiceChrome();
+  toast(on?'朗讀已開':'朗讀已關');
+  if(view==='settings')renderSettings();
+}
 function startLesson(id){
  if(!canStartNode(store.save,id)){toast('要先完成前面關卡。');return;}
  node=NODE_BY_ID[id];session=makeSession(node);lastResult=null;paused=false;
@@ -539,8 +557,11 @@ function offerImport(){
 }
 function renderSettings(){
  const virtOn=virtKeyboardOn();
+ const voice=voiceOn(store.save);
  const virtRow=`<div class="setting-row"><div><span class="setting-title" id="setting-virtualKeyboard">${gameIcon('keyboard')}畫面鍵盤</span><small>開：戰鬥顯示完整 QWERTY 大掣（iPad 都用得）。關：淨用電腦／外接鍵盤。實體鍵隨時用得。</small></div><button class="toggle" data-action="toggle-setting" data-id="virtualKeyboard" aria-pressed="${virtOn}" aria-labelledby="setting-virtualKeyboard"><i class="toggle-thumb" aria-hidden="true"></i><span>${virtOn?'開':'關'}</span></button></div>`;
- setView('settings',frame(`<div class="chapter">照自己的節奏練習</div><h1>設定</h1>${virtRow}${[['autoAdvance','過關自動前進','結算後倒數六秒，接續下一關'],['muted','靜音','關閉音效'],['reducedMotion','減少動態','少啲閃同郁'],['highContrast','提高對比','字同目標更清楚']].map(([id,title,desc])=>`<div class="setting-row"><div><span class="setting-title" id="setting-${id}">${gameIcon(id==='muted'?'sound':id==='autoAdvance'?'next':id==='reducedMotion'?'shield':'settings')}${title}</span><small>${desc}</small></div><button class="toggle" data-action="toggle-setting" data-id="${id}" aria-pressed="${store.save.settings[id]}" aria-labelledby="setting-${id}"><i class="toggle-thumb" aria-hidden="true"></i><span>${store.save.settings[id]?'開':'關'}</span></button></div>`).join('')}<div class="settings-links">${secondary('account','儲存')}${secondary('home','返主頁')}</div><button class="text-link" data-action="privacy" style="align-self:flex-start;margin-top:20px">保存同隱私</button><p class="small" style="font-size:10px;margin-top:25px">打字練習 ${VERSION}</p>`,'settings-panel'));
+ const voiceRow=`<div class="setting-row"><div><span class="setting-title" id="setting-voiceRead">🔊 文字朗讀</span><small>開：對白／提示自動讀出（粵語優先）。頂欄亦可開關。關：唔讀。</small></div><button class="toggle" data-action="toggle-setting" data-id="voiceRead" aria-pressed="${voice}" aria-labelledby="setting-voiceRead"><i class="toggle-thumb" aria-hidden="true"></i><span>${voice?'開':'關'}</span></button></div>`;
+ setView('settings',frame(`<div class="chapter">將軍澳培智學校</div><h1>設定</h1>${virtRow}${voiceRow}${[['autoAdvance','過關自動前進','結算後倒數六秒，接續下一關'],['muted','靜音','關閉音效'],['reducedMotion','減少動態','少啲閃同郁'],['highContrast','提高對比','字同目標更清楚']].map(([id,title,desc])=>`<div class="setting-row"><div><span class="setting-title" id="setting-${id}">${gameIcon(id==='muted'?'sound':id==='autoAdvance'?'next':id==='reducedMotion'?'shield':'settings')}${title}</span><small>${desc}</small></div><button class="toggle" data-action="toggle-setting" data-id="${id}" aria-pressed="${store.save.settings[id]}" aria-labelledby="setting-${id}"><i class="toggle-thumb" aria-hidden="true"></i><span>${store.save.settings[id]?'開':'關'}</span></button></div>`).join('')}<div class="settings-links">${secondary('account','儲存')}${secondary('home','返主頁')}</div><button class="text-link" data-action="privacy" style="align-self:flex-start;margin-top:20px">保存同隱私</button><p class="small" style="font-size:10px;margin-top:25px">打字練習 ${VERSION}</p>`,'settings-panel'));
+ syncVoiceChrome();
 }
 
 function normalizeRows(payload){
@@ -602,7 +623,11 @@ const actions={
  sync:async()=>{const current=store;const attempted=await current.retrySave();if(!attempted||current!==store)return;toast(current.status==='saved'?'目前進度已保存。':'保存尚未完成，冷卻後可重試，或匯出備份。');},logout:()=>{const run=async()=>{await store.logout();shortcutIndex=0;renderEntry();};if(store.pending||store.rewardQueue?.length)showModal('還有進度或靈石尚未保存','<p>可以返回重試保存，或確認放棄尚未同步的部分後登出。</p>',[{label:'返回保存',primary:true,fn:()=>{if(store.rewardQueue?.some(run=>run.kind==='challenge'))renderChallenges();else if(store.rewardQueue?.length)renderBoss();else store.flush();}},{label:'仍要登出',fn:run}]);else run();},
  'export-save':()=>{const url=URL.createObjectURL(new Blob([store.export()],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=GAME_NAME+'-英文紀錄.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},
  'import-save':()=>$('#import-file').click(),'import-legacy':()=>{showModal('帶入舊版個人最佳','<p>舊紀錄沒有帳號身分。確認這是自己的紀錄，再帶入五關與魔王最佳。<br>新劇情仍從第一節開始。</p>',[{label:'取消'},{label:'帶入我的舊紀錄',primary:true,fn:()=>{store.update(mergeSaves(store.save,store.legacyCandidate));store.legacyCandidate=null;renderAccount();}}]);},
- settings:renderSettings,'toggle-setting':b=>{if(b.dataset.id==='inputMode')return;if(b.dataset.id==='virtualKeyboard'){setVirtKeyboard(!virtKeyboardOn());return;}store.update({...store.save,settings:{...store.save.settings,[b.dataset.id]:!store.save.settings[b.dataset.id]}},{settingsDirty:true});renderSettings();},'toggle-virt':()=>{setVirtKeyboard(!virtKeyboardOn());},'drill-kb':b=>setDrillKbMode(b.dataset.mode),'virt-key':b=>{applyVirtKey(b.dataset.code);},
+ settings:renderSettings,'toggle-voice':()=>toggleVoiceRead(),'speak-near':b=>{
+  const row=b.closest('.speech-row,.dialogue-copy,.result,.home-copy,.drill-result-sub');
+  const t=b.dataset.text||row?.querySelector('[data-speak-text],.speech,h1,p')?.getAttribute('data-speak-text')||row?.querySelector('.speech,h1,p')?.textContent||'';
+  speakText(t,{save:store.save,force:true});
+},'toggle-setting':b=>{if(b.dataset.id==='inputMode')return;if(b.dataset.id==='virtualKeyboard'){setVirtKeyboard(!virtKeyboardOn());return;}if(b.dataset.id==='voiceRead'){toggleVoiceRead();return;}store.update({...store.save,settings:{...store.save.settings,[b.dataset.id]:!store.save.settings[b.dataset.id]}},{settingsDirty:true});renderSettings();},'toggle-virt':()=>{setVirtKeyboard(!virtKeyboardOn());},'drill-kb':b=>setDrillKbMode(b.dataset.mode),'virt-key':b=>{applyVirtKey(b.dataset.code);},
  leaderboard:()=>renderLeaderboard(),'rank-stage':b=>renderLeaderboard(Number(b.dataset.index)),'refresh-rank':()=>renderLeaderboard(),
  privacy:()=>showModal('你的旅程，自己的紀錄',`<p>進度保存在這台瀏覽器的本機空間。遊戲只記錄練習結果、章節、服裝和設定，不記錄其他網頁的鍵盤輸入。</p><p>此版本<strong>不使用 Google 登入</strong>，也不連線雲端帳號。</p><p class="small">${GAME_NAME} 為教學改寫版（英文）。</p>`,[{label:'知道了',primary:true}])
 };
@@ -758,6 +783,7 @@ async function bootstrap(){
  let config={firebase:null,legacyLeaderboardUrl:'',legacySubmitEnabled:false};
  await initMedia();
  await store.init(config);
+ syncVoiceChrome();
  renderEntry();
  routeFromHash();
  bootstrapping=false;
