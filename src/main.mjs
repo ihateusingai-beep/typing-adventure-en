@@ -272,11 +272,9 @@ async function forgeItem(button){
 }
 function renderBoss(){const open=bossUnlocked(store.save),best=store.save.bossBest;setView('boss',frame(`<div><div class="chapter">試煉 / 生存拚分</div><h1>無盡挑戰</h1><p>${open?'連戰無固定關數。看準出招、守住氣血，挑戰自己的最佳。':'完成劇情最終節後，無盡挑戰就會開放。先跟著師傅，一步一步認識鍵盤。'}</p>${open?`<div class="endless-reward-preview"><span>個人最佳 <b>${best.score} 分</b></span><span>${endlessGrade(best)} 級 · ${best.rounds} 輪</span><span class="stone-wallet">${gemIcon}<b>${store.save.collection.stones}</b> 靈石</span></div><p class="small">每回 10 次有效按鍵起可領靈石；分數與正確率越高，評級與獎勵越高。</p>${primary('start-boss','進入無盡挑戰 · Enter →')}`:primary('journey','開啟任務選單 →')}${store.rewardQueue?.some(run=>run.kind!=='challenge')?secondary('retry-rewards','補領已完成試煉獎勵'):''}<div class="boss-links">${secondary('trials','返回試煉')}${secondary('endless-ranking','無盡排行榜')}${secondary('collection-tab','靈石祈願','data-id="draw"')}</div><details class="reward-rules"><summary>評級與靈石怎麼算？</summary><p>S：6000 分、95% 正確率；A：3000 分、90%；B：1200 分、80%；C：300 分、60%。其他為 D。<br>靈石＝20＋每 100 分 1 顆＋評級加成（S 100／A 65／B 35／C 15），每回最多 300 顆；少於 10 次有效按鍵不發放。</p></details></div>${open?'<img class="boss-art" src="assets/monsters/nether_lord_boss.gif" alt="無盡挑戰對手">':'<div class="locked-emblem" aria-hidden="true">封</div>'}`,'boss-panel'),{scene:'volcano'});}
 function startLegacy(kind,index=0){
- if(kind==='boss'&&!bossUnlocked(store.save)){renderBoss();return;}
- lastEndlessRun=null;lastChallengeRun=null;legacyKind=kind;legacyIndex=index;sound.pause();
- setView('legacy',`<section class="legacy-wrap"><div class="legacy-wait" id="legacy-wait">正在佈置試煉場…</div><iframe id="legacy-frame" title="${kind==='boss'?'無盡挑戰':'五關挑戰'}" src="legacy.html?embedded=1" allow="autoplay; fullscreen" allowfullscreen></iframe><button class="quiet legacy-back" data-action="leave-legacy">← 返回山門</button></section>`,{scene:trialArtFor(kind==='boss'?4:index).scene});
- legacyFrame=$('#legacy-frame');const gen=generation;
- sceneTimer=setTimeout(()=>{if(gen===generation&&$('#legacy-wait'))$('#legacy-wait').innerHTML=`<div>場景載入較慢，請稍候。<br>${secondary('retry-legacy','重新載入')}</div>`;},15000);
+  // legacy.html not shipped in this fork — avoid infinite wait iframe
+  toast(kind==='boss'?'無盡試煉尚未移植到此版本。':'五關挑戰尚未移植到此版本。先玩劇情即可。');
+  if(kind==='boss')renderBoss(); else renderChallenges();
 }
 let syncButtonTimer=null;
 function updateSyncButton(){
@@ -396,7 +394,8 @@ function menuKey(event){
  }
  return false;
 }
-$('#game-dock').innerHTML=[['home','山門'],['journey','劇情'],['challenges','挑戰'],['trials','試煉'],['wardrobe','服裝']].map(([id,label])=>`<button data-action="${id}">${gameIcon(id==='trials'?'boss':id)}<span>${label}</span>${id==='wardrobe'?'<i class="new-dot" aria-hidden="true"></i>':''}</button>`).join('');
+// Scope B EN fork: challenge/trial need missing legacy.html — hide until ported (see docs/ART_UPGRADE_LATER.md)
+ $('#game-dock').innerHTML=[['home','山門'],['journey','劇情'],['wardrobe','服裝']].map(([id,label])=>`<button data-action="${id}">${gameIcon(id)}<span>${label}</span>${id==='wardrobe'?'<i class="new-dot" aria-hidden="true"></i>':''}</button>`).join('');
 document.addEventListener('click',event=>{if(bootstrapping)return;if(worldMenu.open&&!worldMenu.contains(event.target))worldMenu.open=false;const button=event.target.closest('[data-action]');if(!button||button.disabled)return;const action=actions[button.dataset.action];if(!action)return;if(worldMenu.contains(button))worldMenu.open=false;sound.unlock();if(button.dataset.action==='submit-name')return;if(view==='rift-battle'&&riftArena?.state.phase!=='result'&&button.dataset.action!=='fullscreen'){showModal('要離開秘境嗎？','先結束本回即可領取已擊敗異獸的靈石。',[{label:'繼續對戰',primary:true},{label:'結束本回',fn:()=>riftArena?.click('quit')}]);return;}if(view==='pvp'&&pvp?.room&&button.dataset.action!=='fullscreen'){pvp.requestLeave(()=>action(button));return;}action(button);});
 screen.addEventListener('change',event=>{
  const control=event.target;
