@@ -32,12 +32,12 @@
 }
 .world-footer .ken-brand{
   display:inline-flex;align-items:center;gap:8px;
-  text-decoration:none;color:#8eaa91;
+  color:#8eaa91;flex-wrap:wrap;justify-content:center;text-align:center;
 }
 .world-footer .ken-brand img{
   width:28px;height:34px;object-fit:contain;opacity:.92;
 }
-.world-footer .ken-brand span{letter-spacing:1px;}
+.world-footer .ken-brand span{letter-spacing:.3px;line-height:1.4;}
 
 .speak-btn{
   display:inline-flex;align-items:center;justify-content:center;

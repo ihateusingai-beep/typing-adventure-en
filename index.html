@@ -65,13 +65,16 @@
   </main>
   <nav id="game-dock" class="game-dock" aria-label="遊戲主選單"></nav>
   <footer class="world-footer">
-    <a class="ken-brand" href="https://github.com/ihateusingai-beep" target="_blank" rel="noopener noreferrer">
-      <img src="assets/brand/ken-cheng-logo.png" width="28" height="34" alt="Ken Cheng">
-      <span>Ken Cheng</span>
-    </a>
+    <div class="ken-brand">
+      <img src="assets/brand/ken-cheng-logo.png" width="28" height="34" alt="">
+      <span>© <span id="footer-year">2026</span> Ken Cheng. All Rights Reserved.</span>
+    </div>
   </footer>
 </div>
 <dialog id="modal" aria-labelledby="modal-title"></dialog>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script type="module" src="src/main.mjs?v=brand1"></script>
+<script type="module" src="src/main.mjs?v=brand2"></script>
+<script>
+  (function(){var y=document.getElementById('footer-year');if(y)y.textContent=String(new Date().getFullYear());})();
+</script>
 </body></html>
