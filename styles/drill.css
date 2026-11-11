@@ -85,3 +85,7 @@ body.drill-mode .target-word .current{
   .home-mode-row{flex-direction:column;}
   .home-mode-row .primary,.home-mode-row .secondary{width:100%;}
 }
+
+/* wardrobe SEN */
+.stone-wallet .stone-label{font-size:11px;margin-left:4px;opacity:.85}
+.treasure-grid img{width:72px;height:72px;object-fit:cover;border-radius:10px;background:#f2eddf}

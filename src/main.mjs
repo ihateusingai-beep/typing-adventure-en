@@ -11,7 +11,7 @@ import {actionLabelHTML,decorateActions,modalActionIcon,modalTitleIcon,savePrese
 import {approachFor} from './approaches.mjs?v=sen1';
 import {launchProjectile} from './costumes.mjs';
 import {collectionTabs,collectionBody,gemIcon} from './collection-ui.mjs';
-import {DRAW_POOL,EFFECTS,ATTACK_STYLES,endlessReward,endlessGrade} from './collection.mjs';
+import {DRAW_POOL,EFFECTS,ATTACK_STYLES,endlessReward,endlessGrade,normalizeCollection} from './collection.mjs';
 import {unseenOutfits,markOutfitSeen,nextMissionId,AdvanceClock} from './rewards.mjs';
 import {BPMF_KEYS,BPMF_BY_KEY,physicalKey,routeKey,routeLabel} from './keyboard.mjs';
 import {NODES as EN_NODES,CHAPTERS as EN_CHAPTERS,NODE_BY_ID as EN_NODE_BY_ID,OUTFITS,ENEMIES,VERSION,blankSave,cleanName,accuracy,nextNode as englishNextNode,canStartNode,bossUnlocked,availableOutfits,availableEffects,availableAttacks,makeSession,targetOf,physicalCode,applyInput,sessionResult,completeNode,fingerFor,keyLabel,normalizeSave,mergeSaves,unlockDifferences,uid,resultStars,nodeStars,chapterStars,totalStars} from './core.mjs?v=sen1';
@@ -19,7 +19,7 @@ import {CHAPTER_COPY as EN_CHAPTER_COPY,openingFor as englishOpeningFor,closingF
 import {EnemyDirector} from './enemy-director.mjs';
 import {CHALLENGE_STAGES,CHALLENGE_ENEMIES,CHALLENGE_ENEMY_IDS} from '../game-data/challenge-enemies.mjs';
 import {SaveStore} from './storage.mjs';
-import {initMedia,media,portraitHTML,Sprite,BattleEffects,Sound,watchArt,outfitThumbnail} from './media.mjs?v=portrait2';
+import {initMedia,media,portraitHTML,Sprite,BattleEffects,Sound,watchArt,outfitThumbnail} from './media.mjs?v=ward1';
 import {readVirtKeyboardOn,writeVirtKeyboardOn,migrateLegacyInputMode,labelForCode,syntheticKeyEvent,QWERTY_ROWS,HOME_ANCHORS,isCodeInLesson} from './input-mode.mjs';
 import {DRILL_GROUPS,DRILL_GOAL,makeDrillNode,drillCodes,drillGroup} from './drill.mjs';
 const $=s=>document.querySelector(s),screen=$('#screen'),modal=$('#modal'),worldMenu=$('#world-menu');
@@ -162,14 +162,15 @@ function renderDrillResult(){
  const g=drillGroup(node?.groupId||drillGroupId);
  const acc=accuracy(result);
  const line=acc===null?'再嚟多一局。':acc>=90?'好穩！':acc>=70?'得喇，再練會更熟。':'慢慢嚟，錯唔緊要。';
+ const stars=lastResult?.starsGained||0;
  sound.bgm('main');
  setView('drill-result',frame(`<div class="chapter">練習完 · ${esc(g.title)}</div><h1>${esc(line)}</h1>
-<p class="drill-result-sub">${esc(g.sub)} · ${result.correct} / ${result.attempted||0} 次 · 最高連中 ${result.maxCombo||0}</p>
+<p class="drill-result-sub">${esc(g.sub)} · ${result.correct} / ${result.attempted||0} 次 · 最高連中 ${result.maxCombo||0}${stars?` · 練習星 +${stars}`:''}</p>
 ${metrics(result)}
+${stars?`<div class="reward-note reward-unlocked">${gameIcon('gem')}<span>練習星 +${stars}<small>累積可以解鎖多啲衫</small></span></div>`:''}
 <div class="result-actions">${primary('restart-drill','再嚟一局')}${secondary('drill','換組')}${secondary('home','返主頁')}</div>
 <p class="small">呢局<strong>唔寫入</strong>旅程關卡進度。</p>`,'result drill-result'),{scene:'BG_YARD'});
 }
-
 
 function virtKeyboardOn(){
   // 練習模式永遠顯示畫面鍵（大掣或完整 QWERTY）
@@ -347,17 +348,41 @@ function processKey(event){
  else{msg.textContent='✓ 啱喇 · '+(result.event==='guard'?'守住了！看準再出下一招。':result.event==='word'?'這一串完成了，穩穩的一招。':session.combo%5===0?`${session.combo} 連中，越來越穩了。`:'下一個。');}
  refreshVirtBoard();
 }
+function grantPracticeStars(save,amount,claimId=null){
+  const c=normalizeCollection(save.collection);
+  if(claimId){
+    if(c.claimedIds.includes(claimId))return {save,stones:0,newItems:[]};
+    c.claimedIds=[...c.claimedIds,claimId].slice(-128);
+  }
+  const n=Math.max(0,Math.round(Number(amount)||0));
+  c.earned+=n;c.stones+=n;c.revision++;
+  // 練習星解鎖 O08–O15（唔靠祈願）
+  const ladder=[['outfit-O08',25],['outfit-O09',50],['outfit-O10',80],['outfit-O11',110],['outfit-O12',140],['outfit-O13',170],['outfit-O14',200],['outfit-O15',230]];
+  const newItems=[];
+  for(const [item,need] of ladder){
+    if(c.earned>=need&&!c.items.includes(item)){c.items.push(item);newItems.push(item);}
+  }
+  return {save:{...save,collection:c},stones:n,newItems};
+}
 function finishLesson(){
  clearTimeout(sceneTimer);
  if(node?.drill){
   const result=sessionResult(session);
-  lastResult={result,node,drill:true,rewards:[]};
+  const g=grantPracticeStars(store.save,5); // 每次練習完 +5
+  if(g.stones)store.update(g.save);
+  lastResult={result,node,drill:true,rewards:[],starsGained:g.stones};
   if($('#story-message'))$('#story-message').textContent='練習完成 ✓';
   const gen=generation;
   fx.finish().then(finished=>{if(finished&&view==='battle'&&generation===gen){sound.play('victory',.4);renderDrillResult();}});
   return;
  }
- const result=sessionResult(session),before=store.save.nodeRecords[node.id]?.bestResult,oldStars=nodeStars(store.save,node.id);const completed=completeNode(store.save,node.id,result);lastResult={newTreasures:availableTreasures(completed.save).filter(t=>!availableTreasures(store.save).some(old=>old.id===t.id)),result,before,rewards:completed.newOutfits,node,newStars:Math.max(0,nodeStars(completed.save,node.id)-oldStars)};store.update(completed.save);
+ const result=sessionResult(session),before=store.save.nodeRecords[node.id]?.bestResult,oldStars=nodeStars(store.save,node.id);
+ const completed=completeNode(store.save,node.id,result);
+ const starAmt=completed.firstClear?15:3;
+ const g=grantPracticeStars(completed.save,starAmt,completed.firstClear?`story:${node.id}`:null);
+ const save=g.save;
+ lastResult={newTreasures:availableTreasures(save).filter(t=>!availableTreasures(store.save).some(old=>old.id===t.id)),result,before,rewards:completed.newOutfits,node,newStars:Math.max(0,nodeStars(save,node.id)-oldStars),starsGained:g.stones,firstClear:completed.firstClear};
+ store.update(save);
  if($('#story-message'))$('#story-message').textContent='最後一招，啱喇 ✓';const gen=generation;
  fx.finish().then(finished=>{if(finished&&view==='battle'&&generation===gen){sound.play('victory',.4);renderDialogue(closingFor(node,result),renderStoryResult);}});
 }
@@ -371,13 +396,13 @@ function startAutoAdvance(next){
 document.addEventListener('visibilitychange',()=>advanceClock?.step(performance.now(),{paused:true}));
 function renderStoryResult(){
  const {result,before,rewards,node:n,newStars}=lastResult;const earned=resultStars(result),best=nodeStars(store.save,n.id),next=nextMissionId(store.save,n.id);
- const guide=n.id===FIRST_CHALLENGE_CHAPTER&&shouldGuideChallenge(store.save);
  const feedback=earned===3?'看得準，也能自己找到鍵。三星任務完成！':earned===2?'今次好穩。準備好時，再玩第三星。':'過關喇！可以繼續，或者再練。';
- setView('result',frame(`<div class="chapter">過關 / ${esc(CHAPTERS.find(c=>c.id===n.chapterId).title)}</div><h1>${esc(missionFor(n).title)}</h1>${starsHTML(earned,'result-stars')}<p>${esc(feedback)}</p><div class="star-result-note">${newStars?`新攞 ${newStars}  `:'今次有紀錄'} · 呢關最好 ${best} 星</div>${metrics(result)}${rewards.length?`<div class="reward-note reward-unlocked">${gameIcon('gift')}<span>有新衫：${esc(rewards[0].name)}<small>${esc(rewards[0].effectName)} · 去「換衫」睇</small></span></div>`:''}${lastResult.newTreasures?.length?`<div class="reward-note reward-unlocked">${gameIcon('gem')}<span>新靈寶：${esc(lastResult.newTreasures[0].name)}<small>到服裝的「靈寶」頁籤攜帶，可疊加現有特效。</small></span></div>`:''}${guide?`<aside class="first-challenge-guide"><h2>第二章完成！先去挑戰一回</h2><p>從第一關「紮馬步」開始。看清符文再按鍵，三分鐘結束時，啱幾多達 ${CHALLENGE_MIN_ACCURACY}% 就能完成挑戰。每回達標可領 ${CHALLENGE_REWARD_STONES} 靈石，兩回就能存到一次祈願的費用${store.save.collection.draws===0?'，首抽保證獲得服裝':''}。</p></aside>`:''}<div class="result-actions">${guide?primary('first-challenge','前往第一關挑戰')+(next?secondary('next-lesson','先繼續第三章',`data-id="${next}"`):''):next?primary('next-lesson',gameIcon('next')+' 下一個任務 · Enter',`data-id="${next}"`):primary('boss',gameIcon('boss')+' 額外關 · Enter')}${!guide&&rewards.length?secondary('wear-and-next',next?'穿上新衣並出發':'穿上新衣',`data-id="${rewards[0].id}" data-next="${next??''}"`):''}${secondary('restart-lesson','再玩',`data-id="${n.id}"`)}${secondary('mission-results','回任務選單',`data-id="${n.id}"`)}</div>${!guide&&next&&store.save.settings.autoAdvance?`<div class="auto-next"><span id="auto-next-label" aria-live="off">6 秒後前往下一個任務</span><button class="text-link" data-action="stop-auto">留在這裡</button></div>`:''}<details class="result-details"><summary>查看本回紀錄與三星條件</summary><p>最高連中 ${result.maxCombo} · 有效按鍵 ${result.attempted}<br>首次看見目標時答對 ${result.firstCorrect} / ${result.firstAttempted}<br>${result.assisted?'本回曾使用鍵位提示。':'本回未使用額外提示。'}</p><button class="text-link" data-action="star-guide">查看三星條件</button></details>`,'result mission-result'),{scene:n.backgroundId});
- if(!guide)startAutoAdvance(next);const resultPanel=$('.mission-result');resultPanel.addEventListener('pointerdown',stopAutoAdvance,{once:true});resultPanel.addEventListener('focusin',stopAutoAdvance,{once:true});$('.result-details').addEventListener('toggle',stopAutoAdvance,{once:true});
+ setView('result',frame(`<div class="chapter">過關 / ${esc(CHAPTERS.find(c=>c.id===n.chapterId).title)}</div><h1>${esc(missionFor(n).title)}</h1>${starsHTML(earned,'result-stars')}<p>${esc(feedback)}</p><div class="star-result-note">${newStars?`新攞 ${newStars}  `:'今次有紀錄'} · 呢關最好 ${best} 星${lastResult.starsGained?` · 練習星 +${lastResult.starsGained}`:''}</div>${metrics(result)}${lastResult.starsGained?`<div class="reward-note reward-unlocked">${gameIcon('gem')}<span>練習星 +${lastResult.starsGained}<small>${lastResult.firstClear?'第一次過關':'再練'}</small></span></div>`:''}${rewards.length?`<div class="reward-note reward-unlocked">${gameIcon('gift')}<span>有新衫：${esc(rewards[0].name)}<small>${esc(rewards[0].effectName)} · 去「換衫」睇</small></span></div>`:''}${lastResult.newTreasures?.length?`<div class="reward-note reward-unlocked">${gameIcon('gem')}<span>新靈寶：${esc(lastResult.newTreasures[0].name)}<small>去「換衫 → 靈寶」帶住</small></span></div>`:''}<div class="result-actions">${next?primary('next-lesson',gameIcon('next')+' 下一個任務 · Enter',`data-id="${next}"`):primary('home',gameIcon('home')+' 返主頁')}${rewards.length?secondary('wear-and-next',next?'穿上新衣並出發':'穿上新衣',`data-id="${rewards[0].id}" data-next="${next??''}"`):''}${secondary('restart-lesson','再玩',`data-id="${n.id}"`)}${secondary('mission-results','回任務選單',`data-id="${n.id}"`)}</div>${next&&store.save.settings.autoAdvance?`<div class="auto-next"><span id="auto-next-label" aria-live="off">6 秒後前往下一個任務</span><button class="text-link" data-action="stop-auto">留在這裡</button></div>`:''}<details class="result-details"><summary>查看本回紀錄與三星條件</summary><p>最高連中 ${result.maxCombo} · 有效按鍵 ${result.attempted}<br>首次看見目標時答對 ${result.firstCorrect} / ${result.firstAttempted}<br>${result.assisted?'本回曾使用鍵位提示。':'本回未使用額外提示。'}</p><button class="text-link" data-action="star-guide">查看三星條件</button></details>`,'result mission-result'),{scene:n.backgroundId});
+ if(next)startAutoAdvance(next);const resultPanel=$('.mission-result');resultPanel.addEventListener('pointerdown',stopAutoAdvance,{once:true});resultPanel.addEventListener('focusin',stopAutoAdvance,{once:true});$('.result-details').addEventListener('toggle',stopAutoAdvance,{once:true});
 }
-const outfitGroup=o=>/^O2[6-9]$/.test(o.id)?'heroines':o.category??'jianghu';
-const filteredOutfits=()=>OUTFITS.filter(o=>outfitFilter==='all'||outfitGroup(o)===outfitFilter);
+const outfitGroup=o=>/^O0[0-7]$/.test(o.id)?'story':/^O0[89]$|^O1[0-5]$/.test(o.id)?'extra':'other';
+const SEN_OUTFITS=()=>OUTFITS.filter(o=>/^O0[0-9]$|^O1[0-5]$/.test(o.id));
+const filteredOutfits=()=>SEN_OUTFITS().filter(o=>outfitFilter==='all'||outfitGroup(o)===outfitFilter);
 function attachPreview(current){sound.bgm(current.realm?'cultivation':'main');const sprite=new Sprite($('#outfit-motion'),current.id,{plantedGuard:true,reduced:reduced(),effectId:store.save.equippedEffectId,attackStyle:store.save.attackStyle,relicId:store.save.equippedTreasureId});sprite.previewFx=new PaintedFx($('.outfit-cast-stage'),{reduced:reduced()});sprite.previewFx.prepare(sprite);sceneSprites.push(sprite,sprite.previewFx);}
 function outfitActions(current){
  return `<div class="outfit-preview-actions">${secondary('preview-outfit',gameIcon('challenges')+' 撳','data-motion="attack"')}${secondary('preview-outfit',gameIcon('shield')+' 格擋','data-motion="defense"')}<details class="outfit-motion-more"><summary>更多動作</summary><div>${secondary('preview-outfit','奔行','data-motion="run"')}${secondary('preview-outfit','輕功','data-motion="jump"')}${current.realm?secondary('preview-outfit','施法','data-motion="cast"')+secondary('preview-outfit','結印','data-motion="seal"'):''}</div></details></div>`;
@@ -386,8 +411,8 @@ function renderWardrobe(id){
  if(id)wardrobeTab='outfits';if(wardrobeTab!=='outfits'){renderCollection();return;}
  selectedOutfit=id??store.save.equippedOutfitId;const current=OUTFITS.find(o=>o.id===selectedOutfit)??OUTFITS[0];if(outfitFilter!=='all'&&!filteredOutfits().some(o=>o.id===current.id))outfitFilter=outfitGroup(current);const owned=new Set(availableOutfits(store.save).map(o=>o.id));const unlocked=owned.has(current.id);const wearing=store.save.equippedOutfitId===current.id;
  if(unlocked&&unseenOutfits(store.save).some(o=>o.id===current.id))store.update(markOutfitSeen(store.save,current.id));
- const pending=new Set(unseenOutfits(store.save).map(o=>o.id));const requirement=current.category==='rift'?'可用靈石在鑄靈取得':current.category==='limited'?'集滿原有 16 套後，從限定祈願取得':current.item?'靈石祈願取得':!current.node?'起始服裝':current.id==='O04'?'完成劇情最終節後取得':`完成第 ${Number(current.node.slice(1,3))} 章後取得`;
- setView('wardrobe',frame(`<div class="outfit-preview costume-preview"><div class="outfit-cast-stage"><div id="outfit-motion" aria-label="${esc(current.name)}動態預覽"></div></div>${outfitActions(current)}</div><div class="outfit-body">${collectionTabs(wardrobeTab,store.save)}<div class="chapter">我的· ${esc(current.title)}</div><h1 class="section-title">${esc(current.name)}</h1><p class="small">${esc(current.description)}</p><div class="outfit-power">${gameIcon('combo')}<span>${esc(signatureFor(current.id).name)}${signatureFor(current.id).description!==current.description?`<small>${esc(signatureFor(current.id).description)}</small>`:''}</span></div><div class="outfit-options"><label class="catalog-select outfit-filter-select">衫系列<select data-outfit-series>${[['all','全部衫'],['ordinary-heroines','普通女俠 · 8 套'],['heroines','秘境女俠 · 4 套'],['jianghu','普通'],['immortal','仙途'],['limited','限定'],['rift','秘境']].map(([id,label])=>`<option value="${id}" ${outfitFilter===id?'selected':''}>${label}</option>`).join('')}</select></label>${filteredOutfits().map(o=>{const locked=!owned.has(o.id);return `<button class="outfit-card ${locked?'locked':''}" data-action="outfit" ${o.realm?'data-realm="'+esc(o.realm)+'"':''} data-id="${o.id}" aria-pressed="${o.id===current.id}" aria-label="${esc(o.name)}${locked?'，未有，可預覽':o.id===store.save.equippedOutfitId?'，而家著緊':pending.has(o.id)?'，新服裝':'，已取得'}"><img class="outfit-icon" src="${outfitThumbnail(o.id)}" alt="" loading="lazy"><span>${esc(o.name)}${pending.has(o.id)?'<i class="new-dot" aria-hidden="true"></i>':''}</span><small class="loadout-state">${gameIcon(locked?'lock':pending.has(o.id)?'gift':o.id===store.save.equippedOutfitId?'check':'wardrobe')}${locked?'未有':pending.has(o.id)?'新取得':o.id===store.save.equippedOutfitId?'而家著緊':'已取得'}</small></button>`;}).join('')}</div><p class="outfit-caption">${unlocked?(wearing?'而家著緊':'已取得，可以換上'):requirement}</p>${!unlocked&&current.category==='rift'?secondary('rift-forge','前往鑄靈'):!unlocked&&current.category==='limited'?secondary('collection-tab','前往限定祈願','data-id="limited-draw"'):primary('equip',wearing?'已穿上':unlocked?'穿上這套衣服':'未有',`data-id="${current.id}" ${!unlocked||wearing?'disabled':''}`)}<p class="small outfit-fairness">專屬劍光與護環隨服裝改變，分數與傷害維持相同。</p></div>`,'wardrobe'),{scene:current.realm?'BG_IMMORTAL':'BG_YARD'});
+ const pending=new Set(unseenOutfits(store.save).map(o=>o.id));const requirement=current.item?'練習攞星可解鎖多啲衫（之後開放）':!current.node?'起始服裝':current.id==='O04'?'完成旅程最後一關後取得':`完成第 ${Number(current.node.slice(1,3))} 章後取得`;
+ setView('wardrobe',frame(`<div class="outfit-preview costume-preview"><div class="outfit-cast-stage"><div id="outfit-motion" aria-label="${esc(current.name)}動態預覽"></div></div>${outfitActions(current)}</div><div class="outfit-body">${collectionTabs(wardrobeTab,store.save)}<div class="chapter">我的· ${esc(current.title)}</div><h1 class="section-title">${esc(current.name)}</h1><p class="small">${esc(current.description)}</p><div class="outfit-power">${gameIcon('combo')}<span>${esc(signatureFor(current.id).name)}${signatureFor(current.id).description!==current.description?`<small>${esc(signatureFor(current.id).description)}</small>`:''}</span></div><div class="outfit-options"><label class="catalog-select outfit-filter-select">衫系列<select data-outfit-series>${[['all','全部'],['story','旅程衫'],['extra','多啲衫']].map(([id,label])=>`<option value="${id}" ${outfitFilter===id?'selected':''}>${label}</option>`).join('')}</select></label>${filteredOutfits().map(o=>{const locked=!owned.has(o.id);return `<button class="outfit-card ${locked?'locked':''}" data-action="outfit" ${o.realm?'data-realm="'+esc(o.realm)+'"':''} data-id="${o.id}" aria-pressed="${o.id===current.id}" aria-label="${esc(o.name)}${locked?'，未有，可預覽':o.id===store.save.equippedOutfitId?'，而家著緊':pending.has(o.id)?'，新服裝':'，已取得'}"><img class="outfit-icon" src="${outfitThumbnail(o.id)}" alt="" loading="lazy"><span>${esc(o.name)}${pending.has(o.id)?'<i class="new-dot" aria-hidden="true"></i>':''}</span><small class="loadout-state">${gameIcon(locked?'lock':pending.has(o.id)?'gift':o.id===store.save.equippedOutfitId?'check':'wardrobe')}${locked?'未有':pending.has(o.id)?'新取得':o.id===store.save.equippedOutfitId?'而家著緊':'已取得'}</small></button>`;}).join('')}</div><p class="outfit-caption">${unlocked?(wearing?'而家著緊':'已取得，可以換上'):requirement}</p>${!unlocked&&current.category==='rift'?secondary('rift-forge','前往鑄靈'):!unlocked&&current.category==='limited'?secondary('collection-tab','前往限定祈願','data-id="limited-draw"'):primary('equip',wearing?'已穿上':unlocked?'穿上這套衣服':'未有',`data-id="${current.id}" ${!unlocked||wearing?'disabled':''}`)}<p class="small outfit-fairness">專屬劍光與護環隨服裝改變，分數與傷害維持相同。</p></div>`,'wardrobe'),{scene:current.realm?'BG_IMMORTAL':'BG_YARD'});
  attachPreview(current);
 }
 function renderCollection(){
@@ -561,7 +586,7 @@ const actions={
  guest:()=>{if(store.guestAvailable?.completedNodeIds.length)showModal('接續訪客旅程嗎？','<p>這台裝置已有訪客進度。共用電腦時，確認是自己的紀錄再接續。</p>',[{label:'由頭嚟',fn:()=>{store.update(blankSave('同學'));renderHome();}},{label:'接續旅程',primary:true,fn:()=>{store.save=store.guestAvailable;renderHome();}}]);else{store.update(blankSave('同學'));renderHome();}},
  'resume-guest':()=>{store.save=store.guestAvailable??blankSave('同學');renderHome();},
  'retry-challenge-rewards':async b=>{const current=store;b.disabled=true;try{for(const run of current.rewardQueue.filter(run=>run.kind==='challenge'))await current.claimReward(run);if(current===store&&view==='briefing'){renderChallengeBrief(selectedChallenge);toast('挑戰獎勵已保存。');}}catch(error){b.disabled=false;toast(error.message);}},
- 'retry-rewards':async()=>{const current=store;try{for(const run of current.rewardQueue.filter(run=>run.kind!=='challenge'))await current.claimReward(run);if(current===store){renderBoss();toast('靈石獎勵已保存。');}}catch(error){toast(error.message);}},'collection-tab':b=>{wardrobeTab=b.dataset.id;renderWardrobe();},'equip-treasure':b=>{if(!availableTreasures(store.save).some(t=>t.id===b.dataset.id))return;store.update({...store.save,equippedTreasureId:b.dataset.id},{loadoutDirty:true});sound.play('equip',.45);renderWardrobe();toast(b.dataset.id==='none'?'靈寶已收起。':'已攜帶'+treasureFor(b.dataset.id).name+'，可與服裝特效疊加。');},'equip-effect':b=>equipLoadout('effect',b.dataset.id),'equip-attack':b=>equipLoadout('attack',b.dataset.id),'draw-item':drawCollection,'endless-ranking':renderEndlessRanking,'publish-rank':publishEndless,'unpublish-rank':async()=>{try{await store.unpublishRanking();toast('已取消公開');renderEndlessRanking();}catch{toast('取消公開暫時失敗，請重試。');}},'dialogue-choice':b=>{if(!dialogue)return;if(b.dataset.id==='ask'){dialogue.lines[dialogue.index]={speaker:'MASTER',expression:'encouraging',text:approachFor(node).hint+' 這次的任務是「'+missionFor(node).title+'」。'+(typingMode==='zh-bpmf'?'照亮起的注音鍵依序按，不用選字。':'看準亮起的鍵位再按；F、J 的小凸點能幫你找到雙手的位置。')+'不必搶快，慢慢嚟。'};showDialogueLine();}else{const done=dialogue.onDone;dialogue=null;done({demo:false});}},'next-line':()=>nextLine(),'skip-lines':()=>nextLine(true),'leave-lesson':leaveLesson,pause:pauseBattle,demo:showDemo,
+ 'retry-rewards':async()=>{const current=store;try{for(const run of current.rewardQueue.filter(run=>run.kind!=='challenge'))await current.claimReward(run);if(current===store){renderBoss();toast('靈石獎勵已保存。');}}catch(error){toast(error.message);}},'collection-tab':b=>{const id=b.dataset.id;wardrobeTab=id==='treasures'?'treasures':'outfits';renderWardrobe();},'equip-treasure':b=>{if(!availableTreasures(store.save).some(t=>t.id===b.dataset.id))return;store.update({...store.save,equippedTreasureId:b.dataset.id},{loadoutDirty:true});sound.play('equip',.45);renderWardrobe();toast(b.dataset.id==='none'?'靈寶已收起。':'已攜帶'+treasureFor(b.dataset.id).name+'，可與服裝特效疊加。');},'equip-effect':b=>equipLoadout('effect',b.dataset.id),'equip-attack':b=>equipLoadout('attack',b.dataset.id),'draw-item':drawCollection,'endless-ranking':renderEndlessRanking,'publish-rank':publishEndless,'unpublish-rank':async()=>{try{await store.unpublishRanking();toast('已取消公開');renderEndlessRanking();}catch{toast('取消公開暫時失敗，請重試。');}},'dialogue-choice':b=>{if(!dialogue)return;if(b.dataset.id==='ask'){dialogue.lines[dialogue.index]={speaker:'MASTER',expression:'encouraging',text:approachFor(node).hint+' 這次的任務是「'+missionFor(node).title+'」。'+(typingMode==='zh-bpmf'?'照亮起的注音鍵依序按，不用選字。':'看準亮起的鍵位再按；F、J 的小凸點能幫你找到雙手的位置。')+'不必搶快，慢慢嚟。'};showDialogueLine();}else{const done=dialogue.onDone;dialogue=null;done({demo:false});}},'next-line':()=>nextLine(),'skip-lines':()=>nextLine(true),'leave-lesson':leaveLesson,pause:pauseBattle,demo:showDemo,
  'help-key':()=>{session.assisted=true;$('#keyboard-hint').hidden=false;$('#story-message').textContent='睇亮起嘅鍵，啱就撳。';},
  wardrobe:()=>renderWardrobe(),outfit:b=>{if(wardrobeTab==='limited-draw')outfitFilter='limited';renderWardrobe(b.dataset.id);},equip:b=>{if(!availableOutfits(store.save).some(o=>o.id===b.dataset.id))return;store.update({...markOutfitSeen(store.save,b.dataset.id),equippedOutfitId:b.dataset.id},{outfitDirty:true});renderWardrobe(b.dataset.id);sound.play('equip',.5);},
  'wear-reward':b=>{if(!availableOutfits(store.save).some(o=>o.id===b.dataset.id))return;store.update({...markOutfitSeen(store.save,b.dataset.id),equippedOutfitId:b.dataset.id},{outfitDirty:true});renderWardrobe(b.dataset.id);toast('新衣穿好了，下一段旅程在等你。');},
@@ -614,7 +639,7 @@ screen.addEventListener('change',event=>{
  if(!(control instanceof HTMLSelectElement))return;
  let selector;
  if(control.matches('[data-wardrobe-tab]')){
-  wardrobeTab=control.value;
+  wardrobeTab=control.value==='treasures'?'treasures':'outfits';
   renderWardrobe();
   selector='[data-wardrobe-tab]';
  }else if(control.matches('[data-outfit-series]')){

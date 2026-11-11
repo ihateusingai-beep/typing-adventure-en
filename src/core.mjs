@@ -160,11 +160,12 @@ export function mergeSaves(a,b,{outfitDirty=false,settingsDirty=false,nameDirty=
 }
 export function completeNode(save,id,result){
  if(!canStartNode(save,id))throw new Error('先完成前面的練習，再到這裡。');
+ const firstClear=!save.completedNodeIds.includes(id);
  const before=availableOutfits(save).map(o=>o.id);const next=normalizeSave(save);const r=normalizeResult(result);
  if(!next.completedNodeIds.includes(id))next.completedNodeIds.push(id);
  const old=next.nodeRecords[id]?.bestResult;
  next.nodeRecords[id]={completed:true,bestResult:bestStoryResult(old,r)};
- return {save:next,newOutfits:availableOutfits(next).filter(o=>!before.includes(o.id))};
+ return {save:next,newOutfits:availableOutfits(next).filter(o=>!before.includes(o.id)),firstClear};
 }
 function seeded(seed){let v=2166136261;for(const c of seed)v=Math.imul(v^c.charCodeAt(0),16777619);return()=>{v^=v<<13;v^=v>>>17;v^=v<<5;return(v>>>0)/4294967296;};}
 const SHORT_WORDS=['as','dad','sad','fall','ask','all','jam','sun','ink','run'];
