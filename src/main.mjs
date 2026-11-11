@@ -19,8 +19,9 @@ import {CHAPTER_COPY as EN_CHAPTER_COPY,openingFor as englishOpeningFor,closingF
 import {EnemyDirector} from './enemy-director.mjs';
 import {CHALLENGE_STAGES,CHALLENGE_ENEMIES,CHALLENGE_ENEMY_IDS} from '../game-data/challenge-enemies.mjs';
 import {SaveStore} from './storage.mjs';
-import {initMedia,media,portraitHTML,Sprite,BattleEffects,Sound,watchArt,outfitThumbnail} from './media.mjs?v=fx1';
+import {initMedia,media,portraitHTML,Sprite,BattleEffects,Sound,watchArt,outfitThumbnail} from './media.mjs?v=drill1';
 import {readVirtKeyboardOn,writeVirtKeyboardOn,migrateLegacyInputMode,labelForCode,syntheticKeyEvent,QWERTY_ROWS,HOME_ANCHORS,isCodeInLesson} from './input-mode.mjs';
+import {DRILL_GROUPS,DRILL_GOAL,makeDrillNode,drillCodes,drillGroup} from './drill.mjs';
 const $=s=>document.querySelector(s),screen=$('#screen'),modal=$('#modal'),worldMenu=$('#world-menu');
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const GAME_NAME='電腦打字大冒險';
@@ -40,6 +41,7 @@ let bootstrapping=true;
 let selectedChallenge=0,entryNameDraft='',syncingRoutes=false;let wardrobeTab='outfits',outfitFilter='all',lastEndlessRun=null,lastChallengeRun=null;
 const held=new Set();let sceneTimer=null;let pendingModalClose=null;
 let virtShiftHeld=false;let virtForceOn=null;
+let drillGroupId='asdf';
 const shortcutCodes=[...'asdfghjklmn'].map(letter=>'Key'+letter.toUpperCase());
 let shortcutIndex=0,shortcutAt=0;
 const outfit=()=>OUTFITS.find(o=>o.id===store.save.equippedOutfitId)??OUTFITS[0];
@@ -55,13 +57,13 @@ function updateHeader(){
  const full=$('[data-action=fullscreen]');full.disabled=!document.fullscreenEnabled;full.setAttribute('aria-pressed',String(!!document.fullscreenElement));full.innerHTML=`${gameIcon('fullscreen')}${document.fullscreenElement?'離開全螢幕':'全螢幕'} <kbd>F10</kbd>`;full.title='全螢幕（F10）';
  const badge=$('#player-badge'),name=store.save.displayName||'同學';badge.innerHTML=`<span class="player-name">${esc(name)}</span><span class="player-stars" role="img" aria-label="星 ${totalStars(store.save)}  ">${gameIcon('star')}<b>${totalStars(store.save)}</b></span>`;badge.title=name;badge.removeAttribute('aria-label');
  const unread=unseenOutfits(store.save).length;const wardrobeButton=$('#game-dock [data-action=wardrobe]');if(wardrobeButton){wardrobeButton.dataset.unread=String(unread>0);wardrobeButton.setAttribute('aria-label',unread?`服裝，${unread} 套新服裝待查看`:'服裝');}
- const active=({journey:'journey',battle:'journey',dialogue:'journey',result:'journey',briefing:'challenges',challenges:'challenges','enemy-guide':'challenges',rift:'trials','rift-battle':'trials',pvp:'challenges',legacy:legacyKind==='boss'?'trials':'challenges',boss:'trials',leaderboard:'challenges','endless-ranking':'trials'})[view]??view;
+ const active=({journey:'journey',battle:node?.drill?'drill':'journey',dialogue:'journey',result:node?.drill||lastResult?.node?.drill?'drill':'journey','drill-pick':'drill','drill-result':'drill',briefing:'challenges',challenges:'challenges','enemy-guide':'challenges',rift:'trials','rift-battle':'trials',pvp:'challenges',legacy:legacyKind==='boss'?'trials':'challenges',boss:'trials',leaderboard:'challenges','endless-ranking':'trials'})[view]??view;
  document.querySelectorAll('.game-dock button').forEach(b=>{const on=b.dataset.action===active;b.classList.toggle('active',on);on?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current');});
  const account=document.querySelector('.world-header [data-action=account]');account.innerHTML=gameIcon('user')+`<span>儲存</span>`;account.title='儲存／匯出';
 }
 let riftArena=null;
 function setView(id,html,{scene='BG_YARD'}={}){
- if(id!=='battle'){document.body.classList.remove('virt-on');virtShiftHeld=false;}
+ if(id!=='battle'){document.body.classList.remove('virt-on');document.body.classList.remove('drill-mode');virtShiftHeld=false;}
  if(view!==id)worldMenu.open=false;
  if(pvp){pvp.destroy();pvp=null;}
  if(riftArena){riftArena.destroy();riftArena=null;}
@@ -69,7 +71,7 @@ function setView(id,html,{scene='BG_YARD'}={}){
  if(fx){fx.destroy();fx=null;}
  if(legacyFrame&&id!=='legacy'){legacyFrame.remove();legacyFrame=null;sound.resume();}
  const changed=view!==id;if(changed){shortcutIndex=0;clearTimeout(toastTimer);$('#toast').style.display='none';}view=id;document.body.dataset.view=id;screen.innerHTML=html;decorateActions(screen);if(changed){screen.scrollTop=0;window.scrollTo(0,0);}
- const route=({trials:'/trials',briefing:'/challenge',rift:'/rift','rift-battle':'/rift',pvp:'/pk',home:'/home',journey:'/missions',challenges:'/challenge',wardrobe:'/wardrobe',boss:'/boss','enemy-guide':'/enemies',account:'/account',settings:'/settings',leaderboard:'/leaderboard','endless-ranking':'/endless-ranking',entry:''})[id];
+ const route=({trials:'/trials',briefing:'/challenge',rift:'/rift','rift-battle':'/rift',pvp:'/pk',home:'/home',journey:'/missions',challenges:'/challenge',wardrobe:'/wardrobe',boss:'/boss','enemy-guide':'/enemies',account:'/account',settings:'/settings',leaderboard:'/leaderboard','endless-ranking':'/endless-ranking','drill-pick':'/drill','drill-result':'/drill',entry:''})[id];
  if(!bootstrapping&&route!==undefined)history.replaceState(null,'',location.pathname+location.search+(route?'#'+route:''));
  const bg=media().backgrounds?.[scene]?.src??TRIAL_SCENES[scene]??SCENES[scene]??SCENES.forest;
  const sceneURL=`url('${new URL(bg,document.baseURI).href}')`;document.body.style.setProperty('--world-scene',sceneURL);
@@ -85,7 +87,7 @@ function renderEntry(){
 }
 function renderHome(){
  sound.bgm('main');const next=nextNode(store.save),o=outfit();const cp=next?CHAPTER_COPY[next.chapterId]:CHAPTER_COPY.C07;
- setView('home',frame(`<div class="home-copy"><p class="home-place">${routeLabel(typingMode)}· ${esc(cp.place)}</p><h1 class="headline">${next?'準備好未？':'你全部完成喇！'}</h1><p class="home-greeting">${esc(store.save.displayName||'同學')}，${next?'今日繼續。':'可以再練，或者換衫。'}</p><div class="next-quest"><span>而家呢關</span><h2>${next?esc(missionFor(next).title):'額外關'}</h2><p>${next?esc(CHAPTERS.find(c=>c.id===next.chapterId).title):'全部關卡完成！'}</p>${primary(next?'continue':'boss',next?'繼續':'額外關')}</div></div><figure class="hero-figure">${portraitHTML(o.id,'calm')}<figcaption>${esc(o.name)}<small>${esc(o.title)}</small></figcaption></figure>`,'home'));
+ setView('home',frame(`<div class="home-copy"><p class="home-place">${routeLabel(typingMode)}· ${esc(cp.place)}</p><h1 class="headline">${next?'準備好未？':'你全部完成喇！'}</h1><p class="home-greeting">${esc(store.save.displayName||'同學')}，${next?'今日繼續。':'可以再練，或者換衫。'}</p><div class="home-mode-row">${primary('drill','練習模式')}${secondary(next?'continue':'boss',next?'旅程繼續':'額外關')}</div><div class="next-quest"><span>旅程 · 而家呢關</span><h2>${next?esc(missionFor(next).title):'額外關'}</h2><p>${next?esc(CHAPTERS.find(c=>c.id===next.chapterId).title):'全部關卡完成！'} · 有劇情</p></div><p class="home-drill-note">弱能力／補課：用<strong>練習模式</strong>——開哂鍵組、無劇情、有角色動畫。</p></div><figure class="hero-figure">${portraitHTML(o.id,'calm')}<figcaption>${esc(o.name)}<small>${esc(o.title)}</small></figcaption></figure>`,'home'));
 
  if(store.importCandidate&&!modal.open)offerImport();
 }
@@ -115,14 +117,60 @@ function startLesson(id){
  renderDialogue(openingFor(node,store.save.displayName||'同學'),(choice={demo:true})=>{session.approach=choice.demo?'observe':'solo';renderBattle();if(choice.demo)showDemo({intro:true});},{skippable:store.save.completedNodeIds.includes(id),choices:true});
 }
 function restartLesson(id=node?.id){
+ if(node?.drill||String(id||'').startsWith('DRILL-')){restartDrill();return;}
  if(!canStartNode(store.save,id))return;
  stopAutoAdvance();held.clear();dialogue=null;lastResult=null;paused=false;
  node=NODE_BY_ID[id];session=makeSession(node);session.approach='solo';
  renderBattle();sound.resume();
 }
 
+function renderDrillPick(){
+ sound.bgm('main');
+ const finger=DRILL_GROUPS.filter(g=>g.cat==='finger');
+ const alpha=DRILL_GROUPS.filter(g=>g.cat==='alpha');
+ const card=g=>`<button type="button" class="drill-card ${g.id===drillGroupId?'selected':''}" data-action="start-drill" data-id="${g.id}" aria-label="練習 ${esc(g.title)}"><b>${esc(g.title)}</b><small>${esc(g.sub)}</small><span class="drill-keys">${esc(g.keys.map(k=>k===';'?';':k.toUpperCase()).join(' '))}</span></button>`;
+ setView('drill-pick',frame(`<div class="drill-pick-head"><div><p class="chapter">練習模式 · 無劇情</p><h1 class="section-title">即練鍵</h1><p>開哂組 · 揀一組就打 · 有角色同特效 · 唔影響旅程進度</p></div><button class="quiet" data-action="home">← 主頁</button></div>
+<section class="drill-section"><h2>指法（主推）</h2><div class="drill-grid">${finger.map(card).join('')}</div></section>
+<section class="drill-section"><h2>字母段（認鍵）</h2><div class="drill-grid">${alpha.map(card).join('')}</div></section>
+<p class="drill-foot">每局 ${DRILL_GOAL} 次啱就完 · 錯唔踢走 · 畫面鍵預設本組大掣</p>`,'drill-pick'),{scene:'BG_YARD'});
+}
+
+function startDrill(groupId){
+ drillGroupId=groupId||drillGroupId;
+ const g=drillGroup(drillGroupId);
+ node=makeDrillNode(g.id,DRILL_GOAL);
+ session=makeSession(node);
+ session.approach='solo';
+ session.drill=true;
+ lastResult=null;paused=false;held.clear();dialogue=null;stopAutoAdvance();
+ renderBattle();
+ sound.resume();
+}
+
+function restartDrill(){
+ if(!node?.drill){startDrill(drillGroupId);return;}
+ stopAutoAdvance();held.clear();lastResult=null;paused=false;
+ node=makeDrillNode(node.groupId||drillGroupId,DRILL_GOAL);
+ session=makeSession(node);session.approach='solo';session.drill=true;
+ renderBattle();sound.resume();
+}
+
+function renderDrillResult(){
+ const result=lastResult?.result??sessionResult(session);
+ const g=drillGroup(node?.groupId||drillGroupId);
+ const acc=accuracy(result);
+ const line=acc===null?'再嚟多一局。':acc>=90?'好穩！':acc>=70?'得喇，再練會更熟。':'慢慢嚟，錯唔緊要。';
+ sound.bgm('main');
+ setView('drill-result',frame(`<div class="chapter">練習完 · ${esc(g.title)}</div><h1>${esc(line)}</h1>
+<p class="drill-result-sub">${esc(g.sub)} · ${result.correct} / ${result.attempted||0} 次 · 最高連中 ${result.maxCombo||0}</p>
+${metrics(result)}
+<div class="result-actions">${primary('restart-drill','再嚟一局')}${secondary('drill','換組')}${secondary('home','返主頁')}</div>
+<p class="small">呢局<strong>唔寫入</strong>旅程關卡進度。</p>`,'result drill-result'),{scene:'BG_YARD'});
+}
+
 
 function virtKeyboardOn(){
+  if(view==='battle'&&node?.drill)return true; // 練習模式永遠本組大掣
   if(virtForceOn===true)return true;
   if(virtForceOn===false)return false;
   const s=store?.save?.settings||{};
@@ -147,6 +195,18 @@ function virtBoardHTML(){
   if(!session||!node)return '';
   const t=targetOf(session);
   const expect=t?physicalCode(t.char):'';
+  // 練習模式：本組大掣（SEN）
+  if(node.drill){
+    const codes=drillCodes(node);
+    const keys=codes.map(code=>{
+      const lab=labelForCode(code);
+      const isT=code===expect;
+      const anchor=HOME_ANCHORS.has(code);
+      let cls='virt-key drill-big'+(isT?' is-target':' is-lesson')+(anchor?' is-anchor':'');
+      return `<button type="button" class="${cls}" data-action="virt-key" data-code="${code}" aria-label="撳 ${lab}">${esc(lab)}</button>`;
+    }).join('');
+    return `<div class="virt-board drill-board" id="virt-board" aria-label="本組畫面鍵"><p class="virt-hint">本組大掣 · ${esc(node.title)} · 實體鍵都用得</p><div class="virt-row drill-row">${keys}</div></div>`;
+  }
   const needShift=!!(t&&(t.shift||t.kind==='case'));
   const rows=QWERTY_ROWS.map(row=>{
     const keys=row.map(code=>{
@@ -227,9 +287,15 @@ function targetHTML(){
  return `${t.shift?'<span class="shift-hint">Shift ＋</span>':''}${Array.from(t.value).map((char,i)=>`<span class="${i<session.progress?'done':i===session.progress?'current':''} ${char===' '?'space-char':''}">${esc(char===' '?'空白':t.kind==='word'||t.kind==='case'?char:char.toUpperCase())}</span>`).join('')}`;
 }
 function renderBattle(){
- const enemy=ENEMIES[node.enemyId],o=outfit();setView('battle',frame(`<div class="story-hud">${metrics(session,true)}<button class="quiet" data-action="pause">${gameIcon('pause')}停</button></div><div class="story-playfield"><div class="target-area"><div class="target-label" id="target-label">${routeLabel(typingMode)} / ${esc(missionFor(node).title)}</div><div class="target-word" id="target-word" aria-label="而家要撳">${targetHTML()}</div><div class="finger" id="finger">${esc(fingerFor(targetOf(session).char))} · 慢慢嚟得</div></div><div class="story-actors"><div class="actor-wrap hero-actor"><div id="hero-motion" aria-label="${esc(o.name)}"></div></div><div class="actor-wrap enemy-actor"><div id="enemy-motion" aria-label="${esc(enemy.name)}"></div><span class="enemy-intent" aria-hidden="true"></span><span class="actor-caption">${esc(enemy.name)}</span></div></div><div class="story-message" id="story-message" role="status" aria-live="polite">睇清楚，再撳。</div><div class="keyboard-hint" id="keyboard-hint" ${node.chapterId==='C01'?'':'hidden'}>${keyboardHTML()}</div><div class="battle-help-row"><button class="text-link" data-action="help-key">睇鍵盤</button><button class="text-link" data-action="demo">再睇示範</button></div><div class="no-keyboard">可以用鍵盤，或者下面大掣。</div>${virtBoardHTML()}${virtToggleHTML()}</div>`,'battle',`id="battle-stage" data-node-id="${node.id}"`),{scene:node.backgroundId});
+ const enemy=ENEMIES[node.enemyId],o=outfit();
+ const title=node.drill?`練習 / ${node.title}`:`${routeLabel(typingMode)} / ${esc(missionFor(node).title)}`;
+ const helpRow=node.drill
+  ?`<div class="battle-help-row"><button class="text-link" data-action="help-key">睇鍵盤</button><button class="text-link" data-action="drill">換組</button></div>`
+  :`<div class="battle-help-row"><button class="text-link" data-action="help-key">睇鍵盤</button><button class="text-link" data-action="demo">再睇示範</button></div>`;
+ setView('battle',frame(`<div class="story-hud">${metrics(session,true)}${node.drill?`<div class="drill-progress" id="drill-progress">${session.correct}/${node.completion.target}</div>`:''}<button class="quiet" data-action="pause">${gameIcon('pause')}停</button></div><div class="story-playfield"><div class="target-area"><div class="target-label" id="target-label">${title}</div><div class="target-word" id="target-word" aria-label="而家要撳">${targetHTML()}</div><div class="finger" id="finger">${esc(fingerFor(targetOf(session).char))} · 慢慢嚟得</div></div><div class="story-actors"><div class="actor-wrap hero-actor"><div id="hero-motion" aria-label="${esc(o.name)}"></div></div><div class="actor-wrap enemy-actor"><div id="enemy-motion" aria-label="${esc(enemy.name)}"></div><span class="enemy-intent" aria-hidden="true"></span><span class="actor-caption">${esc(enemy.name)}</span></div></div><div class="story-message" id="story-message" role="status" aria-live="polite">${node.drill?'練習 · 睇清楚再撳。':'睇清楚，再撳。'}</div><div class="keyboard-hint" id="keyboard-hint" ${node.drill||node.chapterId==='C01'?'':'hidden'}>${keyboardHTML()}</div>${helpRow}<div class="no-keyboard">可以用鍵盤，或者下面大掣。</div>${virtBoardHTML()}${virtToggleHTML()}</div>`,'battle'+(node.drill?' drill-battle':''),`id="battle-stage" data-node-id="${node.id}" data-drill="${node.drill?'1':'0'}"`),{scene:node.backgroundId||'BG_YARD'});
+ if(node.drill)document.body.classList.add('drill-mode');
  const hero=new Sprite($('#hero-motion'),o.id,{reduced:reduced(),effectId:store.save.equippedEffectId,attackStyle:store.save.attackStyle,relicId:store.save.equippedTreasureId});const foe=new Sprite($('#enemy-motion'),node.enemyId,{enemy:true,reduced:reduced()});
- fx=new BattleEffects($('#battle-stage'),hero,foe,{reduced:reduced(),onCue:cue=>sound.play(cue, cue==='hurt'?.52:.48)});fx.setTarget(targetOf(session).kind);sound.bgm(node.chapterId==='C07'?'battle':'main');
+ fx=new BattleEffects($('#battle-stage'),hero,foe,{reduced:reduced(),onCue:cue=>sound.play(cue, cue==='hurt'?.52:.48)});fx.setTarget(targetOf(session).kind);sound.bgm(node.drill||node.chapterId==='C07'?'battle':'main');
  virtShiftHeld=false;syncVirtBodyClass();screen.focus({preventScroll:true});
 }
 function showDemo({intro=false}={}){
@@ -246,12 +312,22 @@ function processKey(event){
  const answer=correct?'correct':'wrong',msg=$('#story-message');msg.dataset.answer=answer;$('#target-word').dataset.answer=answer;
  if(result.event==='complete'){finishLesson();return;}
  $('#target-word').innerHTML=targetHTML();const current=targetOf(session);fx?.setTarget(current.kind);$('#finger').textContent=(current.shift?'按住 Shift，再撳字母':fingerFor(current.char))+' · 慢慢嚟得';$('#keyboard-hint').innerHTML=keyboardHTML();
- if(!correct){msg.textContent='✕ 唔啱。'+(session.errorStreak>=3?`先搵${fingerFor(current.char)}下嘅 ${keyLabel(current.char)}。慢慢嚟。`:`再撳 ${keyLabel(current.char)} 再試。`);if(session.errorStreak>=3)$('#keyboard-hint').hidden=false;if(session.errorStreak===5){sceneTimer=setTimeout(()=>{if(view==='battle'&&!paused)showDemo();},550);}}
+ const dp=$('#drill-progress');if(dp&&node?.drill)dp.textContent=`${session.correct}/${node.completion.target}`;
+ if(!correct){msg.textContent='✕ 唔啱。'+(session.errorStreak>=3?`先搵${fingerFor(current.char)}下嘅 ${keyLabel(current.char)}。慢慢嚟。`:`再撳 ${keyLabel(current.char)} 再試。`);if(session.errorStreak>=3)$('#keyboard-hint').hidden=false;if(session.errorStreak===5&&!node?.drill){sceneTimer=setTimeout(()=>{if(view==='battle'&&!paused)showDemo();},550);}}
  else{msg.textContent='✓ 啱喇 · '+(result.event==='guard'?'守住了！看準再出下一招。':result.event==='word'?'這一串完成了，穩穩的一招。':session.combo%5===0?`${session.combo} 連中，越來越穩了。`:'下一個。');}
  refreshVirtBoard();
 }
 function finishLesson(){
- clearTimeout(sceneTimer);const result=sessionResult(session),before=store.save.nodeRecords[node.id]?.bestResult,oldStars=nodeStars(store.save,node.id);const completed=completeNode(store.save,node.id,result);lastResult={newTreasures:availableTreasures(completed.save).filter(t=>!availableTreasures(store.save).some(old=>old.id===t.id)),result,before,rewards:completed.newOutfits,node,newStars:Math.max(0,nodeStars(completed.save,node.id)-oldStars)};store.update(completed.save);
+ clearTimeout(sceneTimer);
+ if(node?.drill){
+  const result=sessionResult(session);
+  lastResult={result,node,drill:true,rewards:[]};
+  if($('#story-message'))$('#story-message').textContent='練習完成 ✓';
+  const gen=generation;
+  fx.finish().then(finished=>{if(finished&&view==='battle'&&generation===gen){sound.play('victory',.4);renderDrillResult();}});
+  return;
+ }
+ const result=sessionResult(session),before=store.save.nodeRecords[node.id]?.bestResult,oldStars=nodeStars(store.save,node.id);const completed=completeNode(store.save,node.id,result);lastResult={newTreasures:availableTreasures(completed.save).filter(t=>!availableTreasures(store.save).some(old=>old.id===t.id)),result,before,rewards:completed.newOutfits,node,newStars:Math.max(0,nodeStars(completed.save,node.id)-oldStars)};store.update(completed.save);
  if($('#story-message'))$('#story-message').textContent='最後一招，啱喇 ✓';const gen=generation;
  fx.finish().then(finished=>{if(finished&&view==='battle'&&generation===gen){sound.play('victory',.4);renderDialogue(closingFor(node,result),renderStoryResult);}});
 }
@@ -441,15 +517,17 @@ function showModal(title,html,actions){
 }
 function pauseBattle(){
  if(view!=='battle'||paused||session?.done)return;paused=true;fx?.pause();sound.pause();pendingModalClose=resumeBattle;
- showModal('停一停',`<p>準備好再撳。</p>`,[{label:'返主頁',fn:()=>{store.writeLocal();store.flush();paused=false;renderHome();}},{label:'再玩',fn:()=>restartLesson()},{label:'再睇示範',fn:showDemo},{label:'繼續',primary:true,fn:resumeBattle}]);pendingModalClose=resumeBattle;
+ const again=node?.drill?{label:'再玩',fn:()=>restartDrill()}:{label:'再玩',fn:()=>restartLesson()};
+ const demoOrSwap=node?.drill?{label:'換組',fn:()=>{paused=false;renderDrillPick();}}:{label:'再睇示範',fn:showDemo};
+ showModal('停一停',`<p>準備好再撳。</p>`,[{label:'返主頁',fn:()=>{store.writeLocal();store.flush();paused=false;renderHome();}},again,demoOrSwap,{label:'繼續',primary:true,fn:resumeBattle}]);pendingModalClose=resumeBattle;
 }
 modal.addEventListener('cancel',()=>{if(view==='legacy')legacyFrame?.contentWindow?.postMessage({type:'wuxia:resume'},location.origin);if(paused){setTimeout(resumeBattle,0);} });
 modal.addEventListener('close',()=>{if(pendingModalClose){const fn=pendingModalClose;pendingModalClose=null;fn();}});
-function leaveLesson(){showModal('返主頁？','<p>呢關未完成，返嚟會由頭練。<br>已完成嘅程都會保留。</p>',[{label:'繼續',primary:true,fn:()=>{if(view==='battle')resumeBattle();}},{label:'返主頁',fn:()=>{paused=false;renderHome();}}]);}
+function leaveLesson(){showModal(node?.drill?'離開練習？':'返主頁？',node?.drill?'<p>呢局未完。旅程進度唔會受影響。</p>':'<p>呢關未完成，返嚟會由頭練。<br>已完成嘅程都會保留。</p>',[{label:'繼續',primary:true,fn:()=>{if(view==='battle')resumeBattle();}},{label:node?.drill?'返選組':'返主頁',fn:()=>{paused=false;node?.drill?renderDrillPick():renderHome();}}]);}
 function safeRouteHome(){if(view==='battle'){pauseBattle();return;}if(view==='dialogue'){leaveLesson();return;}if(view==='legacy'){leaveLegacy();return;}renderHome();}
 function leaveLegacy(){legacyFrame?.contentWindow?.postMessage({type:'wuxia:pause'},location.origin);showModal('返主頁？','<p>呢局未完。已有紀錄會留住。</p>',[{label:'繼續挑戰',primary:true,fn:()=>legacyFrame?.contentWindow?.postMessage({type:'wuxia:resume'},location.origin)},{label:'返主頁',fn:renderHome}]);}
 const actions={
- trials:renderTrials,rift:()=>renderRift(),'rift-preview':previewRiftEnemy,'start-rift':startRiftBattle,'rift-forge':()=>{wardrobeTab='forge';renderWardrobe();},'forge-item':forgeItem,pvp:()=>renderPvp(),fullscreen:toggleFullscreen,home:safeRouteHome,continue:()=>{const next=nextNode(store.save);next?startLesson(next.id):renderBoss();},journey:()=>renderJourney(),chapter:b=>{renderJourney(b.dataset.id);$(`[data-action=chapter][data-id="${chapterId}"]`)?.focus({preventScroll:true});},'select-mission':b=>{renderJourney(chapterId,b.dataset.id);if(matchMedia('(max-width:700px)').matches){$('.mission-detail').focus({preventScroll:true});$('.mission-detail').scrollIntoView({behavior:reduced()?'instant':'smooth',block:'start'});}},'mission-results':b=>renderJourney(NODE_BY_ID[b.dataset.id].chapterId,b.dataset.id),'star-guide':()=>showModal('每個任務，都能收集三 ','<p>★ 完成任務。<br>★★ 完成任務，啱幾多達 80%。<br>★★★ 啱幾多達 95%，且未使用額外鍵位提示。</p><p class="small">老師示範唔影響星。唔使趕。一粒星就可以去下一關；再玩只留最好星數，唔重複累加。</p>',[{label:'知道了',primary:true}]),lesson:b=>startLesson(b.dataset.id),'restart-lesson':b=>restartLesson(b.dataset.id),'next-lesson':b=>startLesson(b.dataset.id),'stop-auto':stopAutoAdvance,'outfit-filter':b=>{outfitFilter=b.dataset.id;renderWardrobe(filteredOutfits().some(o=>o.id===selectedOutfit)?selectedOutfit:filteredOutfits()[0].id);},'preview-outfit':b=>{const sprite=sceneSprites[0];if(!sprite)return;sprite.finisher=false;sprite.act(b.dataset.motion,800);if(['run','jump'].includes(b.dataset.motion))sprite.previewFx.clear();else sprite.previewFx.preview(sprite,b.dataset.motion,store.save.attackStyle);if(['attack','cast','seal'].includes(b.dataset.motion))launchProjectile($('.outfit-cast-stage'),$('#outfit-motion'),null,b.dataset.motion==='cast'?'spell':b.dataset.motion==='seal'?'talisman':store.save.attackStyle,reduced());sound.play(['run','jump'].includes(b.dataset.motion)?'click':b.dataset.motion==='defense'?'guard':b.dataset.motion==='attack'&&store.save.attackStyle==='sword'?'attack':'magic',.45);},'wear-and-next':b=>{if(!availableOutfits(store.save).some(o=>o.id===b.dataset.id))return;store.update({...markOutfitSeen(store.save,b.dataset.id),equippedOutfitId:b.dataset.id},{outfitDirty:true});sound.play('equip',.5);b.dataset.next?startLesson(b.dataset.next):renderWardrobe(b.dataset.id);},
+ trials:renderTrials,rift:()=>renderRift(),'rift-preview':previewRiftEnemy,'start-rift':startRiftBattle,'rift-forge':()=>{wardrobeTab='forge';renderWardrobe();},'forge-item':forgeItem,pvp:()=>renderPvp(),fullscreen:toggleFullscreen,home:safeRouteHome,drill:()=>renderDrillPick(),'start-drill':b=>{drillGroupId=b.dataset.id||drillGroupId;startDrill(drillGroupId);},'restart-drill':()=>restartDrill(),continue:()=>{const next=nextNode(store.save);next?startLesson(next.id):renderBoss();},journey:()=>renderJourney(),chapter:b=>{renderJourney(b.dataset.id);$(`[data-action=chapter][data-id="${chapterId}"]`)?.focus({preventScroll:true});},'select-mission':b=>{renderJourney(chapterId,b.dataset.id);if(matchMedia('(max-width:700px)').matches){$('.mission-detail').focus({preventScroll:true});$('.mission-detail').scrollIntoView({behavior:reduced()?'instant':'smooth',block:'start'});}},'mission-results':b=>renderJourney(NODE_BY_ID[b.dataset.id].chapterId,b.dataset.id),'star-guide':()=>showModal('每個任務，都能收集三 ','<p>★ 完成任務。<br>★★ 完成任務，啱幾多達 80%。<br>★★★ 啱幾多達 95%，且未使用額外鍵位提示。</p><p class="small">老師示範唔影響星。唔使趕。一粒星就可以去下一關；再玩只留最好星數，唔重複累加。</p>',[{label:'知道了',primary:true}]),lesson:b=>startLesson(b.dataset.id),'restart-lesson':b=>restartLesson(b.dataset.id),'next-lesson':b=>startLesson(b.dataset.id),'stop-auto':stopAutoAdvance,'outfit-filter':b=>{outfitFilter=b.dataset.id;renderWardrobe(filteredOutfits().some(o=>o.id===selectedOutfit)?selectedOutfit:filteredOutfits()[0].id);},'preview-outfit':b=>{const sprite=sceneSprites[0];if(!sprite)return;sprite.finisher=false;sprite.act(b.dataset.motion,800);if(['run','jump'].includes(b.dataset.motion))sprite.previewFx.clear();else sprite.previewFx.preview(sprite,b.dataset.motion,store.save.attackStyle);if(['attack','cast','seal'].includes(b.dataset.motion))launchProjectile($('.outfit-cast-stage'),$('#outfit-motion'),null,b.dataset.motion==='cast'?'spell':b.dataset.motion==='seal'?'talisman':store.save.attackStyle,reduced());sound.play(['run','jump'].includes(b.dataset.motion)?'click':b.dataset.motion==='defense'?'guard':b.dataset.motion==='attack'&&store.save.attackStyle==='sword'?'attack':'magic',.45);},'wear-and-next':b=>{if(!availableOutfits(store.save).some(o=>o.id===b.dataset.id))return;store.update({...markOutfitSeen(store.save,b.dataset.id),equippedOutfitId:b.dataset.id},{outfitDirty:true});sound.play('equip',.5);b.dataset.next?startLesson(b.dataset.next):renderWardrobe(b.dataset.id);},
  guest:()=>{if(store.guestAvailable?.completedNodeIds.length)showModal('接續訪客旅程嗎？','<p>這台裝置已有訪客進度。共用電腦時，確認是自己的紀錄再接續。</p>',[{label:'由頭嚟',fn:()=>{store.update(blankSave('同學'));renderHome();}},{label:'接續旅程',primary:true,fn:()=>{store.save=store.guestAvailable;renderHome();}}]);else{store.update(blankSave('同學'));renderHome();}},
  'resume-guest':()=>{store.save=store.guestAvailable??blankSave('同學');renderHome();},
  'retry-challenge-rewards':async b=>{const current=store;b.disabled=true;try{for(const run of current.rewardQueue.filter(run=>run.kind==='challenge'))await current.claimReward(run);if(current===store&&view==='briefing'){renderChallengeBrief(selectedChallenge);toast('挑戰獎勵已保存。');}}catch(error){b.disabled=false;toast(error.message);}},
@@ -483,7 +561,7 @@ document.addEventListener('fullscreenchange',updateHeader);
 function menuKey(event){
  if(['battle','legacy','dialogue','entry','pvp'].includes(view))return false;
  const target=event.target,scope=target===screen||target===document.body;
- if(event.code==='Escape'&&!document.fullscreenElement){if(view==='boss'||view==='rift')renderTrials();else if(view==='endless-ranking')renderBoss();else if(view==='leaderboard')renderChallenges();else if(view==='enemy-guide')renderChallengeBrief(guideStage);else if(view!=='home')renderHome();else return false;return true;}
+ if(event.code==='Escape'&&!document.fullscreenElement){if(view==='boss'||view==='rift')renderTrials();else if(view==='endless-ranking')renderBoss();else if(view==='leaderboard')renderChallenges();else if(view==='enemy-guide')renderChallengeBrief(guideStage);else if(view==='drill-pick'||view==='drill-result')renderHome();else if(view!=='home')renderHome();else return false;return true;}
  const direction=['ArrowLeft','ArrowUp'].includes(event.code)?-1:['ArrowRight','ArrowDown'].includes(event.code)?1:0;
  if(view==='journey'&&(scope||target.closest?.('.mission-map'))){
   if(direction){const ids=CHAPTERS.find(c=>c.id===chapterId).nodeIds,i=ids.indexOf(selectedMission),id=ids[(i+direction+ids.length)%ids.length];renderJourney(chapterId,id);$(`.mission-card[data-id="${id}"]`).focus({preventScroll:true});return true;}
@@ -493,13 +571,13 @@ function menuKey(event){
  if(direction&&view==='wardrobe'&&wardrobeTab==='outfits'&&(scope||target.closest?.('.outfit-options'))){const choices=filteredOutfits(),at=choices.findIndex(o=>o.id===selectedOutfit),id=choices[(at+direction+choices.length)%choices.length].id;renderWardrobe(id);$(`[data-action=outfit][data-id="${id}"]`).focus({preventScroll:true});return true;}
  if(direction&&view==='enemy-guide'&&(scope||target.closest?.('.enemy-roster'))){const ids=CHALLENGE_STAGES[guideStage].enemies,at=ids.indexOf(guideEnemy),id=ids[(at+direction+ids.length)%ids.length];renderEnemyGuide(guideStage,id);$(`[data-action=select-enemy][data-id="${id}"]`).focus({preventScroll:true});return true;}
  if(scope&&event.code==='Enter'){
-  const action=({home:nextNode(store.save)?'continue':'boss',briefing:'begin-challenge',boss:'start-boss',result:lastResult?.node.id===FIRST_CHALLENGE_CHAPTER&&shouldGuideChallenge(store.save)?'first-challenge':lastResult&&nextMissionId(store.save,lastResult.node.id)?'next-lesson':'boss'})[view],button=action&&screen.querySelector(`[data-action="${action}"]`);
+  const action=({home:nextNode(store.save)?'continue':'drill',briefing:'begin-challenge',boss:'start-boss','drill-result':'restart-drill',result:lastResult?.node?.drill?'restart-drill':lastResult?.node.id===FIRST_CHALLENGE_CHAPTER&&shouldGuideChallenge(store.save)?'first-challenge':lastResult&&nextMissionId(store.save,lastResult.node.id)?'next-lesson':'boss'})[view],button=action&&screen.querySelector(`[data-action="${action}"]`);
   if(button&&!button.disabled){button.click();return true;}
  }
  return false;
 }
 // Scope B EN fork: challenge/trial need missing legacy.html — hide until ported (see docs/ART_UPGRADE_LATER.md)
- $('#game-dock').innerHTML=[['home','主頁'],['journey','關卡'],['wardrobe','換衫']].map(([id,label])=>`<button data-action="${id}">${gameIcon(id)}<span>${label}</span>${id==='wardrobe'?'<i class="new-dot" aria-hidden="true"></i>':''}</button>`).join('');
+ $('#game-dock').innerHTML=[['home','主頁'],['drill','練習'],['journey','旅程'],['wardrobe','換衫']].map(([id,label])=>`<button data-action="${id}">${gameIcon(id==='drill'?'target':id)}<span>${label}</span>${id==='wardrobe'?'<i class="new-dot" aria-hidden="true"></i>':''}</button>`).join('');
 document.addEventListener('click',event=>{if(bootstrapping)return;if(worldMenu.open&&!worldMenu.contains(event.target))worldMenu.open=false;const button=event.target.closest('[data-action]');if(!button||button.disabled)return;const action=actions[button.dataset.action];if(!action)return;if(worldMenu.contains(button))worldMenu.open=false;sound.unlock();if(button.dataset.action==='submit-name')return;if(view==='rift-battle'&&riftArena?.state.phase!=='result'&&button.dataset.action!=='fullscreen'){showModal('要離開嗎？','結束就可以攞獎勵。',[{label:'繼續',primary:true},{label:'結束',fn:()=>riftArena?.click('quit')}]);return;}if(view==='pvp'&&pvp?.room&&button.dataset.action!=='fullscreen'){pvp.requestLeave(()=>action(button));return;}action(button);});
 screen.addEventListener('change',event=>{
  const control=event.target;

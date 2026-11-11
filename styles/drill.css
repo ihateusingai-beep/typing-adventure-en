@@ -1,0 +1,72 @@
+/* 練習模式 P0 */
+.home-mode-row{
+  display:flex;flex-wrap:wrap;gap:12px;margin:16px 0 8px;
+}
+.home-mode-row .primary{font-size:1.05rem;padding:.85rem 1.25rem}
+.home-drill-note{
+  margin-top:12px;font-size:.92rem;opacity:.88;line-height:1.45;
+}
+.drill-pick-head{
+  display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px;
+}
+.drill-pick-head h1{margin:.2rem 0}
+.drill-section{margin:18px 0}
+.drill-section h2{
+  font-size:1rem;margin:0 0 10px;opacity:.9;
+}
+.drill-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+  gap:10px;
+}
+.drill-card{
+  appearance:none;border:2px solid color-mix(in srgb, var(--ink, #152b29) 18%, transparent);
+  background:color-mix(in srgb, #fff 78%, #f2eddf);
+  border-radius:14px;padding:14px 12px;text-align:left;cursor:pointer;
+  display:flex;flex-direction:column;gap:4px;min-height:96px;
+  transition:transform .12s ease, border-color .12s ease, box-shadow .12s ease;
+}
+.drill-card:hover,.drill-card:focus-visible{
+  transform:translateY(-1px);
+  border-color:color-mix(in srgb, #355d4d 55%, transparent);
+  outline:none;
+  box-shadow:0 6px 18px color-mix(in srgb, #152b29 12%, transparent);
+}
+.drill-card.selected{
+  border-color:#355d4d;
+  box-shadow:0 0 0 2px color-mix(in srgb, #c8b77f 55%, transparent);
+}
+.drill-card b{font-size:1.25rem;letter-spacing:.04em}
+.drill-card small{opacity:.75}
+.drill-keys{
+  margin-top:auto;font-family:ui-monospace,Menlo,monospace;
+  font-size:.95rem;font-weight:700;letter-spacing:.06em;color:#355d4d;
+}
+.drill-foot{margin-top:16px;opacity:.8;font-size:.9rem}
+.drill-progress{
+  font-weight:800;font-size:1.1rem;min-width:3.5rem;text-align:center;
+  padding:.25rem .55rem;border-radius:999px;
+  background:color-mix(in srgb,#c8b77f 35%, transparent);
+}
+.drill-result-sub{opacity:.85;margin-top:-.4rem}
+body.drill-mode .target-word{
+  font-size:clamp(2.6rem, 9vw, 4.2rem);
+}
+body.drill-mode .target-word .current{
+  transform:scale(1.06);
+}
+.virt-board.drill-board .drill-row{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:10px;padding:8px 4px 4px;
+}
+.virt-key.drill-big{
+  min-width:min(22vw, 88px);
+  min-height:min(18vw, 72px);
+  font-size:clamp(1.4rem, 5vw, 2rem);
+  font-weight:800;
+  border-radius:16px;
+}
+@media (max-width:700px){
+  .drill-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .home-mode-row{flex-direction:column;}
+  .home-mode-row .primary,.home-mode-row .secondary{width:100%;}
+}
