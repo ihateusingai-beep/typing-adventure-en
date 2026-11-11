@@ -19,7 +19,7 @@ import {CHAPTER_COPY as EN_CHAPTER_COPY,openingFor as englishOpeningFor,closingF
 import {EnemyDirector} from './enemy-director.mjs';
 import {CHALLENGE_STAGES,CHALLENGE_ENEMIES,CHALLENGE_ENEMY_IDS} from '../game-data/challenge-enemies.mjs';
 import {SaveStore} from './storage.mjs';
-import {initMedia,media,portraitHTML,Sprite,BattleEffects,Sound,watchArt,outfitThumbnail} from './media.mjs';
+import {initMedia,media,portraitHTML,Sprite,BattleEffects,Sound,watchArt,outfitThumbnail} from './media.mjs?v=cut1';
 const $=s=>document.querySelector(s),screen=$('#screen'),modal=$('#modal'),worldMenu=$('#world-menu');
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const GAME_NAME='電腦打字大冒險';
