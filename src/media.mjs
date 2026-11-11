@@ -5,7 +5,7 @@ import {costumeStyle} from './costumes.mjs';
 import {ENEMY_MOTION,combatPlan,spritePose,blendSpritePose} from './combat.mjs';
 // Images are loaded by manifest and by current scene only. Missing art never silently becomes another character.
 let manifest={portraits:{},motion:{},backgrounds:{},enemies:{}};
-export async function initMedia(){try{const r=await fetch('game-data/media.json?v=portrait1');if(r.ok)manifest=await r.json();}catch{}return manifest;}
+export async function initMedia(){try{const r=await fetch('game-data/media.json?v=portrait2');if(r.ok)manifest=await r.json();}catch{}return manifest;}
 export const media=()=>manifest;
 export const outfitThumbnail=id=>manifest.motion[id]?.thumbnail??'assets/v3/thumbnails/'+id+'.webp';
 export function portraitStyle(id,expression='calm'){
