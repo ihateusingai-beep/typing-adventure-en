@@ -1,5 +1,5 @@
 
-@font-face{font-family:Wuxia;src:url('https://wuxia-typing-journey.changsheng0612.workers.dev/fonts/font_wuxia_title.woff2.ttf')}
+@font-face{font-family:Wuxia;src:url('../fonts/font_wuxia_title.woff2.ttf')}
 :root{--paper:#f2eddf;--ink:#152b29;--jade:#355d4d;--gold:#c8b77f;--line:#d5d7c9;--muted:#6d7a6b}
 [hidden]{display:none!important}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:'PingFang TC','Noto Serif TC',serif}button,a,input{font:inherit}button{cursor:pointer}button:focus-visible,a:focus-visible{outline:3px solid #c39541;outline-offset:4px}button:disabled{cursor:default}a{color:var(--jade)}
 .review{padding:18px 4vw 14px;border-bottom:1px solid #cdd2c1;display:flex;justify-content:space-between;gap:20px;align-items:center;background:#f7f3e8}.review strong{font-size:15px}.review small{display:block;color:var(--muted);font-size:11px;margin-top:5px;line-height:1.6}.review a{font-size:12px;white-space:nowrap}

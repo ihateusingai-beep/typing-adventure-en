@@ -7,7 +7,7 @@ import {ENEMY_MOTION,combatPlan,spritePose,blendSpritePose} from './combat.mjs';
 let manifest={portraits:{},motion:{},backgrounds:{},enemies:{}};
 export async function initMedia(){try{const r=await fetch('game-data/media.json');if(r.ok)manifest=await r.json();}catch{}return manifest;}
 export const media=()=>manifest;
-export const outfitThumbnail=id=>manifest.motion[id]?.thumbnail??'https://wuxia-typing-journey.changsheng0612.workers.dev/assets/v3/thumbnails/'+id+'.webp';
+export const outfitThumbnail=id=>manifest.motion[id]?.thumbnail??'assets/v3/thumbnails/'+id+'.webp';
 export function portraitStyle(id,expression='calm'){
  const item=manifest.portraits[id];if(!item)return null;
  if(item.single)return `--portrait-aspect:${item.aspect??1};aspect-ratio:${item.aspect??1};background-image:url('${item.src}');background-size:contain;background-repeat:no-repeat;background-position:center;`;
