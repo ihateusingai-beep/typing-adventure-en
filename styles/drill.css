@@ -65,6 +65,21 @@ body.drill-mode .target-word .current{
   font-weight:800;
   border-radius:16px;
 }
+.drill-kb-row{
+  display:flex;flex-wrap:wrap;gap:8px 14px;justify-content:center;align-items:center;
+  margin:6px 0 2px;
+}
+.drill-kb-row .text-link{
+  border:1px solid color-mix(in srgb,#152b29 18%, transparent);
+  border-radius:999px;padding:.35rem .85rem;
+  opacity:.85;
+}
+.drill-kb-row .text-link.is-active{
+  background:color-mix(in srgb,#355d4d 18%, #fff);
+  border-color:#355d4d;
+  opacity:1;font-weight:700;
+}
+.virt-board.drill-qwerty .virt-hint{text-align:center}
 @media (max-width:700px){
   .drill-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
   .home-mode-row{flex-direction:column;}

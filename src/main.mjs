@@ -19,7 +19,7 @@ import {CHAPTER_COPY as EN_CHAPTER_COPY,openingFor as englishOpeningFor,closingF
 import {EnemyDirector} from './enemy-director.mjs';
 import {CHALLENGE_STAGES,CHALLENGE_ENEMIES,CHALLENGE_ENEMY_IDS} from '../game-data/challenge-enemies.mjs';
 import {SaveStore} from './storage.mjs';
-import {initMedia,media,portraitHTML,Sprite,BattleEffects,Sound,watchArt,outfitThumbnail} from './media.mjs?v=drill1';
+import {initMedia,media,portraitHTML,Sprite,BattleEffects,Sound,watchArt,outfitThumbnail} from './media.mjs?v=drill2';
 import {readVirtKeyboardOn,writeVirtKeyboardOn,migrateLegacyInputMode,labelForCode,syntheticKeyEvent,QWERTY_ROWS,HOME_ANCHORS,isCodeInLesson} from './input-mode.mjs';
 import {DRILL_GROUPS,DRILL_GOAL,makeDrillNode,drillCodes,drillGroup} from './drill.mjs';
 const $=s=>document.querySelector(s),screen=$('#screen'),modal=$('#modal'),worldMenu=$('#world-menu');
@@ -42,6 +42,8 @@ let selectedChallenge=0,entryNameDraft='',syncingRoutes=false;let wardrobeTab='o
 const held=new Set();let sceneTimer=null;let pendingModalClose=null;
 let virtShiftHeld=false;let virtForceOn=null;
 let drillGroupId='asdf';
+let drillKbMode='big'; // big=本組大掣 | qwerty=完整虛擬鍵盤
+try{const m=localStorage.getItem('typing_adventure_en_drill_kb');if(m==='qwerty'||m==='big')drillKbMode=m;}catch{}
 const shortcutCodes=[...'asdfghjklmn'].map(letter=>'Key'+letter.toUpperCase());
 let shortcutIndex=0,shortcutAt=0;
 const outfit=()=>OUTFITS.find(o=>o.id===store.save.equippedOutfitId)??OUTFITS[0];
@@ -132,7 +134,7 @@ function renderDrillPick(){
  setView('drill-pick',frame(`<div class="drill-pick-head"><div><p class="chapter">練習模式 · 無劇情</p><h1 class="section-title">即練鍵</h1><p>開哂組 · 揀一組就打 · 有角色同特效 · 唔影響旅程進度</p></div><button class="quiet" data-action="home">← 主頁</button></div>
 <section class="drill-section"><h2>指法（主推）</h2><div class="drill-grid">${finger.map(card).join('')}</div></section>
 <section class="drill-section"><h2>字母段（認鍵）</h2><div class="drill-grid">${alpha.map(card).join('')}</div></section>
-<p class="drill-foot">每局 ${DRILL_GOAL} 次啱就完 · 錯唔踢走 · 畫面鍵預設本組大掣</p>`,'drill-pick'),{scene:'BG_YARD'});
+<p class="drill-foot">每局 ${DRILL_GOAL} 次啱就完 · 錯唔踢走 · 畫面鍵：本組大掣／完整 QWERTY 可切</p>`,'drill-pick'),{scene:'BG_YARD'});
 }
 
 function startDrill(groupId){
@@ -170,45 +172,23 @@ ${metrics(result)}
 
 
 function virtKeyboardOn(){
-  if(view==='battle'&&node?.drill)return true; // 練習模式永遠本組大掣
+  // 練習模式永遠顯示畫面鍵（大掣或完整 QWERTY）
+  if(view==='battle'&&node?.drill)return true;
   if(virtForceOn===true)return true;
   if(virtForceOn===false)return false;
   const s=store?.save?.settings||{};
   if(typeof s.virtualKeyboard==='boolean')return s.virtualKeyboard;
   return migrateLegacyInputMode(s);
 }
-function syncVirtBodyClass(){
-  const on=view==='battle'&&virtKeyboardOn();
-  document.body.classList.toggle('virt-on',on);
-  return on;
+function setDrillKbMode(mode,{toastMsg=true}={}){
+  drillKbMode=mode==='qwerty'?'qwerty':'big';
+  try{localStorage.setItem('typing_adventure_en_drill_kb',drillKbMode);}catch{}
+  if(view==='battle'&&node?.drill){refreshVirtBoard();screen.focus({preventScroll:true});}
+  if(toastMsg)toast(drillKbMode==='qwerty'?'畫面鍵：完整 QWERTY':'畫面鍵：本組大掣');
 }
-function setVirtKeyboard(on,{toastMsg=true}={}){
-  const v=!!on;
-  writeVirtKeyboardOn(v);
-  store.update({...store.save,settings:{...store.save.settings,virtualKeyboard:v,inputMode:v?'virt':'phys'}},{settingsDirty:true});
-  virtForceOn=null;
-  if(view==='battle'){refreshVirtBoard();screen.focus({preventScroll:true});}
-  else if(view==='settings')renderSettings();
-  if(toastMsg)toast(v?'畫面鍵盤：開':'畫面鍵盤：關');
-}
-function virtBoardHTML(){
-  if(!session||!node)return '';
+function qwertyBoardRowsHTML(expect){
   const t=targetOf(session);
-  const expect=t?physicalCode(t.char):'';
-  // 練習模式：本組大掣（SEN）
-  if(node.drill){
-    const codes=drillCodes(node);
-    const keys=codes.map(code=>{
-      const lab=labelForCode(code);
-      const isT=code===expect;
-      const anchor=HOME_ANCHORS.has(code);
-      let cls='virt-key drill-big'+(isT?' is-target':' is-lesson')+(anchor?' is-anchor':'');
-      return `<button type="button" class="${cls}" data-action="virt-key" data-code="${code}" aria-label="撳 ${lab}">${esc(lab)}</button>`;
-    }).join('');
-    return `<div class="virt-board drill-board" id="virt-board" aria-label="本組畫面鍵"><p class="virt-hint">本組大掣 · ${esc(node.title)} · 實體鍵都用得</p><div class="virt-row drill-row">${keys}</div></div>`;
-  }
-  const needShift=!!(t&&(t.shift||t.kind==='case'));
-  const rows=QWERTY_ROWS.map(row=>{
+  return QWERTY_ROWS.map(row=>{
     const keys=row.map(code=>{
       const lab=labelForCode(code);
       const isShift=code==='ShiftLeft'||code==='ShiftRight';
@@ -228,11 +208,61 @@ function virtBoardHTML(){
     }).join('');
     return `<div class="virt-row">${keys}</div>`;
   }).join('');
-  return `<div class="virt-board" id="virt-board" aria-label="畫面鍵盤"><p class="virt-hint">畫面鍵盤 · 目標鍵會發光 · 都用得實體鍵</p>${rows}</div>`;
+}
+function virtBoardHTML(){
+  if(!session||!node)return '';
+  const t=targetOf(session);
+  const expect=t?physicalCode(t.char):'';
+  // 練習模式：本組大掣 或 完整 QWERTY
+  if(node.drill){
+    if(drillKbMode==='qwerty'){
+      return `<div class="virt-board drill-board drill-qwerty" id="virt-board" aria-label="完整畫面鍵盤"><p class="virt-hint">完整 QWERTY · 本組鍵會亮 · 目標鍵發光 · 實體鍵都用得</p>${qwertyBoardRowsHTML(expect)}</div>`;
+    }
+    const codes=drillCodes(node);
+    const keys=codes.map(code=>{
+      const lab=labelForCode(code);
+      const isT=code===expect;
+      const anchor=HOME_ANCHORS.has(code);
+      let cls='virt-key drill-big'+(isT?' is-target':' is-lesson')+(anchor?' is-anchor':'');
+      return `<button type="button" class="${cls}" data-action="virt-key" data-code="${code}" aria-label="撳 ${lab}">${esc(lab)}</button>`;
+    }).join('');
+    return `<div class="virt-board drill-board" id="virt-board" aria-label="本組畫面鍵"><p class="virt-hint">本組大掣 · ${esc(node.title)} · 實體鍵都用得</p><div class="virt-row drill-row">${keys}</div></div>`;
+  }
+  return `<div class="virt-board" id="virt-board" aria-label="畫面鍵盤"><p class="virt-hint">畫面鍵盤 · 目標鍵會發光 · 都用得實體鍵</p>${qwertyBoardRowsHTML(expect)}</div>`;
 }
 function virtToggleHTML(){
-  const on=virtKeyboardOn();
+  if(node?.drill){
+    const big=drillKbMode!=='qwerty';
+    return `<div class="virt-toggle-row drill-kb-row" role="group" aria-label="畫面鍵模式">
+      <button type="button" class="text-link ${big?'is-active':''}" data-action="drill-kb" data-mode="big" aria-pressed="${big}">本組大掣</button>
+      <button type="button" class="text-link ${!big?'is-active':''}" data-action="drill-kb" data-mode="qwerty" aria-pressed="${!big}">完整鍵盤</button>
+    </div>`;
+  }
+  // journey: during setView() view may not yet be battle — prefer saved setting
+  let on=false;
+  if(view==='battle')on=virtKeyboardOn();
+  else{
+    const s=store?.save?.settings||{};
+    if(typeof s.virtualKeyboard==='boolean')on=s.virtualKeyboard;
+    else on=migrateLegacyInputMode(s);
+  }
   return `<div class="virt-toggle-row"><button type="button" class="text-link" data-action="toggle-virt">${on?'關閉畫面鍵盤':'開啟畫面鍵盤'}</button></div>`;
+}
+function syncVirtBodyClass(){
+  const on=view==='battle'&&virtKeyboardOn();
+  document.body.classList.toggle('virt-on',on);
+  document.body.classList.toggle('drill-kb-qwerty', !!(node?.drill&&drillKbMode==='qwerty'));
+  document.body.classList.toggle('drill-kb-big', !!(node?.drill&&drillKbMode!=='qwerty'));
+  return on;
+}
+function setVirtKeyboard(on,{toastMsg=true}={}){
+  const v=!!on;
+  writeVirtKeyboardOn(v);
+  store.update({...store.save,settings:{...store.save.settings,virtualKeyboard:v,inputMode:v?'virt':'phys'}},{settingsDirty:true});
+  virtForceOn=null;
+  if(view==='battle'){refreshVirtBoard();screen.focus({preventScroll:true});}
+  else if(view==='settings')renderSettings();
+  if(toastMsg)toast(v?'畫面鍵盤：開':'畫面鍵盤：關');
 }
 function refreshVirtBoard(){
   const on=syncVirtBodyClass();
@@ -547,7 +577,7 @@ const actions={
  sync:async()=>{const current=store;const attempted=await current.retrySave();if(!attempted||current!==store)return;toast(current.status==='saved'?'目前進度已保存。':'保存尚未完成，冷卻後可重試，或匯出備份。');},logout:()=>{const run=async()=>{await store.logout();shortcutIndex=0;renderEntry();};if(store.pending||store.rewardQueue?.length)showModal('還有進度或靈石尚未保存','<p>可以返回重試保存，或確認放棄尚未同步的部分後登出。</p>',[{label:'返回保存',primary:true,fn:()=>{if(store.rewardQueue?.some(run=>run.kind==='challenge'))renderChallenges();else if(store.rewardQueue?.length)renderBoss();else store.flush();}},{label:'仍要登出',fn:run}]);else run();},
  'export-save':()=>{const url=URL.createObjectURL(new Blob([store.export()],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=GAME_NAME+'-英文紀錄.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},
  'import-save':()=>$('#import-file').click(),'import-legacy':()=>{showModal('帶入舊版個人最佳','<p>舊紀錄沒有帳號身分。確認這是自己的紀錄，再帶入五關與魔王最佳。<br>新劇情仍從第一節開始。</p>',[{label:'取消'},{label:'帶入我的舊紀錄',primary:true,fn:()=>{store.update(mergeSaves(store.save,store.legacyCandidate));store.legacyCandidate=null;renderAccount();}}]);},
- settings:renderSettings,'toggle-setting':b=>{if(b.dataset.id==='inputMode')return;if(b.dataset.id==='virtualKeyboard'){setVirtKeyboard(!virtKeyboardOn());return;}store.update({...store.save,settings:{...store.save.settings,[b.dataset.id]:!store.save.settings[b.dataset.id]}},{settingsDirty:true});renderSettings();},'toggle-virt':()=>{setVirtKeyboard(!virtKeyboardOn());},'virt-key':b=>{applyVirtKey(b.dataset.code);},
+ settings:renderSettings,'toggle-setting':b=>{if(b.dataset.id==='inputMode')return;if(b.dataset.id==='virtualKeyboard'){setVirtKeyboard(!virtKeyboardOn());return;}store.update({...store.save,settings:{...store.save.settings,[b.dataset.id]:!store.save.settings[b.dataset.id]}},{settingsDirty:true});renderSettings();},'toggle-virt':()=>{setVirtKeyboard(!virtKeyboardOn());},'drill-kb':b=>setDrillKbMode(b.dataset.mode),'virt-key':b=>{applyVirtKey(b.dataset.code);},
  leaderboard:()=>renderLeaderboard(),'rank-stage':b=>renderLeaderboard(Number(b.dataset.index)),'refresh-rank':()=>renderLeaderboard(),
  privacy:()=>showModal('你的旅程，自己的紀錄',`<p>進度保存在這台瀏覽器的本機空間。遊戲只記錄練習結果、章節、服裝和設定，不記錄其他網頁的鍵盤輸入。</p><p>此版本<strong>不使用 Google 登入</strong>，也不連線雲端帳號。</p><p class="small">${GAME_NAME} 為教學改寫版（英文）。</p>`,[{label:'知道了',primary:true}])
 };
