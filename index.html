@@ -42,7 +42,7 @@
     </button>
     <nav aria-label="選單">
       <span id="player-badge" class="player-badge"></span>
-      <button type="button" class="header-voice-toggle" data-action="toggle-voice" aria-pressed="true" title="文字朗讀">🔊 朗讀</button>
+      <button type="button" class="header-voice-toggle" data-action="toggle-voice" aria-pressed="false" title="文字朗讀">🔇 朗讀</button>
       <details id="world-menu" class="world-menu">
         <summary aria-label="開選單"><span class="menu-glyph" aria-hidden="true">☰</span><span>選單</span></summary>
         <div class="world-menu-panel">
@@ -73,7 +73,7 @@
 </div>
 <dialog id="modal" aria-labelledby="modal-title"></dialog>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script type="module" src="src/main.mjs?v=brand2"></script>
+<script type="module" src="src/main.mjs?v=brand3"></script>
 <script>
   (function(){var y=document.getElementById('footer-year');if(y)y.textContent=String(new Date().getFullYear());})();
 </script>

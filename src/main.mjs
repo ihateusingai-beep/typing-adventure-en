@@ -113,7 +113,7 @@ function renderDialogue(lines,onDone,{skippable=false,choices=false}={}){
 function showDialogueLine(){
  const d=dialogue,line=d.lines[d.index];const name=line.speaker==='HERO'?(store.save.displayName||'同學'):SPEAKERS[line.speaker];
  setView('dialogue',frame(`<div class="topline"><button class="quiet" data-action="leave-lesson">← 主頁</button><span class="dialogue-stage-name">${esc(node?missionFor(node).title:'打字練習')}</span></div><div class="dialogue-art">${portraitHTML(line.speaker==='HERO'?outfit().id:line.speaker,line.expression)}</div><div class="dialogue-copy"><p class="speaker">${esc(name)}</p><div class="speech-row"><p class="speech" data-speak-text="${esc(line.text)}">${esc(line.text)}</p>${speakButton('icon')}</div><div class="dialogue-actions">${primary('next-line',d.index===d.lines.length-1?(d.onDone===renderStoryResult?'睇成績':d.choices?approachFor(node).observe+' · Enter →':'得喇'):'繼續')}${d.choices&&d.index===d.lines.length-1?`<button class="secondary" data-action="dialogue-choice" data-id="solo">${esc(approachFor(node).solo)}</button><button class="text-link" data-action="dialogue-choice" data-id="ask">${esc(approachFor(node).ask)}</button>`:''}<span class="dialogue-step">${d.index+1} / ${d.lines.length}</span>${d.skippable?'<button class="text-link" data-action="skip-lines">略過已讀對話</button>':''}</div></div>`,'dialogue'),{scene:node?.backgroundId??'forest'});
- speakText(`${name}。${line.text}`,{save:store.save});
+ speakText(line.text,{save:store.save});
  syncVoiceChrome();
 }
 function nextLine(skip=false){if(!dialogue)return;stopSpeak();const d=dialogue;if(skip||++d.index>=d.lines.length){dialogue=null;d.onDone(d.choices?{demo:true}:undefined);}else showDialogueLine();}

@@ -18,7 +18,7 @@ function pickVoice(){
 
 export function voiceOn(save){
   if(typeof save?.settings?.voiceRead==='boolean')return !!save.settings.voiceRead;
-  return true; // SEN 預設開
+  return false; // 預設關
 }
 
 export function stopSpeak(){
