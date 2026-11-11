@@ -15,10 +15,10 @@ export const SIGNATURES={
       "rows": 1,
       "count": 4,
       "inkBounds": [
-        40,
-        128,
-        344,
-        294
+        20,
+        74,
+        362,
+        310
       ],
       "cellSize": 384
     },

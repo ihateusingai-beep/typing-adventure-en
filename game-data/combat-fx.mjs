@@ -8,10 +8,10 @@ export const COMBAT_FX={
     "count": 4,
     "cellSize": 512,
     "inkBounds": [
-      18,
+      99,
       26,
-      484,
-      462
+      407,
+      471
     ]
   },
   "blade": {
@@ -21,10 +21,10 @@ export const COMBAT_FX={
     "count": 4,
     "cellSize": 512,
     "inkBounds": [
-      144,
-      156,
-      364,
-      369
+      27,
+      98,
+      484,
+      413
     ]
   },
   "thunder": {
@@ -34,10 +34,10 @@ export const COMBAT_FX={
     "count": 4,
     "cellSize": 512,
     "inkBounds": [
-      137,
-      144,
-      368,
-      365
+      87,
+      26,
+      424,
+      485
     ]
   },
   "frost": {
@@ -47,10 +47,10 @@ export const COMBAT_FX={
     "count": 4,
     "cellSize": 512,
     "inkBounds": [
-      141,
-      143,
-      362,
-      350
+      27,
+      98,
+      484,
+      413
     ]
   },
   "flame": {
@@ -60,10 +60,10 @@ export const COMBAT_FX={
     "count": 4,
     "cellSize": 512,
     "inkBounds": [
-      146,
-      136,
-      374,
-      342
+      87,
+      26,
+      424,
+      485
     ]
   }
 };

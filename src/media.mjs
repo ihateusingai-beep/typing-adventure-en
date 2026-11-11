@@ -5,7 +5,7 @@ import {costumeStyle} from './costumes.mjs';
 import {ENEMY_MOTION,combatPlan,spritePose,blendSpritePose} from './combat.mjs';
 // Images are loaded by manifest and by current scene only. Missing art never silently becomes another character.
 let manifest={portraits:{},motion:{},backgrounds:{},enemies:{}};
-export async function initMedia(){try{const r=await fetch('game-data/media.json?v=cut1');if(r.ok)manifest=await r.json();}catch{}return manifest;}
+export async function initMedia(){try{const r=await fetch('game-data/media.json?v=fx1');if(r.ok)manifest=await r.json();}catch{}return manifest;}
 export const media=()=>manifest;
 export const outfitThumbnail=id=>manifest.motion[id]?.thumbnail??'assets/v3/thumbnails/'+id+'.webp';
 export function portraitStyle(id,expression='calm'){
@@ -31,14 +31,13 @@ export function watchArt(root){
  }
 }
 
-const referenceEffects={hit:'xianxia/combat-hit.ogg',magic:'xianxia/skill-charge.ogg',equip:'xianxia/drawer-open.ogg',unlock:'xianxia/level-up.ogg',victory:'xianxia/level-up.ogg'};
 const effects={correct:'sfx_answer_correct.mp3',wrong:'sfx_answer_wrong.mp3',guard:'sfx_shield_block.mp3',victory:'sfx_level_up.mp3',attack:'sfx_player_attack.mp3',click:'sfx_button_click.mp3',swing:'sfx_player_attack.mp3',hit:'sfx_attack_crit.mp3',hurt:'sfx_monster_attack.mp3',equip:'sfx_buy_item.mp3',unlock:'sfx_level_up.mp3',magic:'sfx_skill_cast.mp3'};
 export class Sound{
  constructor(){this.muted=false;this.music=null;this.track=null;this.active=[];this.unlocked=false;}
  unlock(){this.unlocked=true;if(this.music?.paused&&!this.muted)this.music.play().catch(()=>{});}
  setMuted(m){this.muted=m;if(this.music)this.music.muted=m;this.active.forEach(a=>a.muted=m);}
- play(name,volume=.35){if(this.muted||!this.unlocked)return;const src=effects[name];if(!src)return;const a=new Audio('audio/'+(referenceEffects[name]??src));a.onerror=()=>{a.onerror=null;a.src='audio/'+src;if(!this.muted)a.play().catch(()=>{});};a.volume=volume;this.active.push(a);a.onended=()=>this.active=this.active.filter(x=>x!==a);a.play().catch(()=>{});if(this.active.length>6)this.active.shift().pause();}
- bgm(track='main'){if(this.track===track)return;this.music?.pause();this.track=track;this.music=new Audio('audio/'+({main:'bgm_main_game.mp3',title:'bgm_title_screen.mp3',battle:'bgm_battle.mp3',cultivation:'xianxia/cultivation-loop.ogg'}[track]));if(track==='cultivation')this.music.onerror=()=>{this.music.onerror=null;this.music.src='audio/bgm_main_game.mp3';if(this.unlocked&&!this.muted)this.music.play().catch(()=>{});};this.music.loop=true;this.music.volume=.16;this.music.muted=this.muted;if(this.unlocked)this.music.play().catch(()=>{});}
+ play(name,volume=.35){if(this.muted||!this.unlocked)return;const src=effects[name];if(!src)return;const a=new Audio('audio/'+src);a.volume=volume;this.active.push(a);a.onended=()=>this.active=this.active.filter(x=>x!==a);a.play().catch(()=>{});if(this.active.length>6)this.active.shift().pause();}
+ bgm(track='main'){if(this.track===track)return;this.music?.pause();this.track=track;this.music=new Audio('audio/'+({main:'bgm_main_game.mp3',title:'bgm_title_screen.mp3',battle:'bgm_battle.mp3',cultivation:'bgm_main_game.mp3'}[track]??'bgm_main_game.mp3'));this.music.loop=true;this.music.volume=.16;this.music.muted=this.muted;if(this.unlocked)this.music.play().catch(()=>{});}
  pause(){this.music?.pause();this.active.forEach(a=>a.pause());}
  resume(){if(this.unlocked&&!this.muted)this.music?.play().catch(()=>{});}
 }
