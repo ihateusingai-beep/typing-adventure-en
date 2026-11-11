@@ -1,0 +1,193 @@
+/* Navigation sits above the illustrated scenes without adding a permanent toolbar. */
+.world-header {
+ position:relative;
+ z-index:8;
+ min-height:0;
+ flex-wrap:nowrap;
+ padding-block:5px;
+}
+.world-header nav { display:flex; align-items:center; margin-inline-start:auto; gap:12px; }
+.world-menu { position:relative; }
+.world-menu summary, .outfit-motion-more summary, .trial-records summary {
+ list-style:none;
+ cursor:pointer;
+}
+.world-menu summary::-webkit-details-marker, .outfit-motion-more summary::-webkit-details-marker,
+.trial-records summary::-webkit-details-marker { display:none; }
+.world-menu > summary {
+ display:flex;
+ gap:8px;
+ align-items:center;
+ padding:7px 14px;
+ min-height:42px;
+ border:1px solid #d9bb786b;
+ border-radius:10px;
+ background:#132f30ed;
+ color:#ffedc2;
+ font-size:14px;
+ white-space:nowrap;
+}
+.world-menu[open] > summary { border-color:#f1dba9; }
+.menu-glyph { color:#efcf88; font-size:16px; line-height:1; }
+.world-menu-panel {
+ position:absolute;
+ z-index:20;
+ inset:calc(100% + 8px) 0 auto auto;
+ width:min(286px,calc(100vw - 32px));
+ display:grid;
+ gap:8px;
+ padding:12px;
+ border:1px solid #d5bc7f92;
+ border-radius:14px;
+ background:#102b2f;
+ box-shadow:0 16px 38px #061516b5;
+}
+.world-menu-top {
+ display:flex; justify-content:space-between; align-items:center; gap:6px;
+ color:#f6e1a9; font-size:14px; padding:4px;
+}
+.world-menu-panel #save-status { display:inline-flex; font-size:11px; }
+.world-menu-panel #route-switch { width:100%; margin:0; }
+.world-menu-panel .mode-picker { display:flex; justify-content:stretch; }
+.world-menu-panel .mode-picker button { flex:1; }
+.world-menu-panel .header-button { justify-content:flex-start; width:100%; min-height:42px; padding:7px 12px; }
+.world-menu-panel kbd { margin-inline-start:auto; }
+.world-menu-panel button:focus-visible, .world-menu summary:focus-visible, .catalog-select select:focus-visible,
+.trial-records summary:focus-visible, .outfit-motion-more summary:focus-visible { outline:2px solid #f0d28b; outline-offset:3px; }
+body:is([data-view=battle],[data-view=dialogue],[data-view=legacy]) .world-header nav { display:none; }
+.game-dock { max-width:560px; }
+.catalog-select { display:flex; align-items:center; gap:9px; color:#b9d4c8; font-size:13px; }
+.catalog-select select,.rift-selectors select {
+ appearance:auto;
+ min-width:0;
+ min-height:42px;
+ padding:6px 8px;
+ border:1px solid #adbea366;
+ border-radius:9px;
+ background:#142f33;
+ color:#ffe8b2;
+ font:inherit;
+}
+.catalog-select select { flex:1; }
+.outfit-filter-select { grid-column:1/-1; margin-block:0 5px; }
+.collection-heading .catalog-select { width:min(290px,78%); }
+.outfit-motion-more { grid-column:1/-1; color:#c7d8c8; font-size:13px; }
+.outfit-motion-more summary { display:inline-flex; min-height:36px; align-items:center; gap:6px; }
+.outfit-motion-more summary::after,.trial-records summary::after { content:'▾'; color:#e3ca88; }
+.outfit-motion-more[open] summary::after,.trial-records[open] summary::after { content:'▴'; }
+.outfit-motion-more div { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; }
+.trial-gate-view { display:grid!important; align-items:center; padding:clamp(12px,4vw,52px); }
+.trial-gate { width:min(100%,920px); margin:auto; padding:clamp(12px,2.5vw,25px); border-radius:16px; background:#10292ddb; border:1px solid #baac7369; }
+.trial-gate h1 { margin-block:4px 14px; }
+.trial-gate-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.trial-gate-card {
+ min-height:clamp(104px,16vh,172px);
+ display:grid; justify-items:start; align-content:end; gap:5px;
+ padding:12px; text-align:left;
+ color:#fff0c4; border:1px solid #c7ad7280; border-radius:12px;
+ background:linear-gradient(90deg,#101f27ee 0%,#11242b9c 62%,#10282d18),var(--gate-scene) center/cover;
+}
+.trial-gate-card b { font:clamp(19px,3vw,26px)/1.15 Wuxia,serif; }
+.trial-gate-card span { color:#e0ebd5; font-size:12px; line-height:1.4; }
+.trial-gate-card:hover { border-color:#efd296; }
+.trial-records { margin-top:9px; color:#d8cdab; }
+.trial-records summary { display:inline-flex; min-height:38px; gap:8px; align-items:center; }
+.stage-select { width:min(100%,320px); margin-bottom:12px; }
+.rift-selectors { display:flex; gap:10px; flex-wrap:wrap; }
+.rift-selectors label { display:grid; gap:5px; color:#d4dfc6; font-size:13px; }
+.rift-enemy:is([data-body=flutter],[data-body=coil]) :is(img,.rift-enemy-pose) { animation-name:rift-float; }
+@media(min-width:1000px) and (min-height:600px){
+ #screen .journey.mission-menu { grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto minmax(0,1fr); gap:6px; }
+ .journey.mission-menu .mission-board { grid-column:1;grid-row:3; }
+}
+@media(max-width:760px){
+ .world-header { height:58px; gap:6px; }
+ .world-header nav { gap:5px; }
+ .world-menu > summary { min-height:42px; padding-inline:10px; }
+ .trial-gate-grid { gap:7px; }
+ .trial-gate-card { padding:8px; min-height:105px; }
+ .trial-gate-card span { font-size:11px; }
+}
+
+.trial-gate-grid { gap:clamp(10px,2vw,22px); }
+.trial-gate-card {
+ --gate-accent:#b9f1d7;
+ --gate-wash:#092c2b;
+ min-height:clamp(205px,34vh,310px);
+ padding:clamp(12px,2.5vw,27px);
+ background:linear-gradient(0deg,var(--gate-wash) 3%,color-mix(in srgb,var(--gate-wash),transparent 15%) 45%,#172a3010),var(--gate-scene) center/cover;
+ border-color:color-mix(in srgb,var(--gate-accent),transparent 48%);
+}
+.trial-gate-card[data-action=boss] { --gate-accent:#ffd297; --gate-wash:#3c1f17; }
+.trial-gate-card b { color:var(--gate-accent); }
+.trial-gate-card .gate-format,.trial-gate-card .gate-unlock { display:flex; align-items:center; gap:7px; color:var(--gate-accent); font-weight:700; }
+.gate-format .game-icon { width:22px; height:22px; }
+.trial-gate-card .gate-note { font-size:clamp(13px,1.35vw,16px); }
+.trial-gate-card .gate-reward { color:#f1e6c6; }
+.trial-gate-card .gate-unlock { margin-top:5px; padding-top:6px; border-top:1px solid color-mix(in srgb,var(--gate-accent),transparent 65%); }
+.trial-gate-card:focus-visible { outline:2px solid var(--gate-accent); outline-offset:3px; }
+@media(max-width:520px){
+ .trial-gate-grid { grid-template-columns:1fr; }
+ .trial-gate-card { min-height:172px; }
+}
+
+/* Keep every chapter and challenge visible without opening a dropdown. */
+.chapter-choices,.challenge-choices { display:grid;gap:6px;min-width:0;margin:0 0 10px; }
+.chapter-choices { grid-template-columns:repeat(7,minmax(0,1fr)); }
+.challenge-choices { grid-template-columns:repeat(5,minmax(0,1fr)); }
+.chapter-choices button,.challenge-choices button {
+ display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;
+ min-width:0;min-height:60px;padding:8px;text-align:left;font:inherit;
+ border:1px solid #b4c5a762;border-radius:9px;background:#102e32ed;color:#e7e5c5;
+}
+.chapter-choices button span,.challenge-choices button span { display:flex;align-items:center;gap:4px;font-size:11px;color:#bdd3c8; }
+.chapter-choices button b,.challenge-choices button b { font-size:14px;line-height:1.35; }
+.chapter-choices button small { font-size:10px;color:#c6d8c9; }
+.chapter-choices .game-icon { width:14px;height:14px; }
+.chapter-choices button[aria-pressed=true],.challenge-choices button[aria-pressed=true] { background:#385448;border:2px solid #efd18e;padding:7px;color:#fff0bc; }
+.chapter-choices button:disabled { opacity:.55;cursor:not-allowed; }
+.chapter-choices button:focus-visible,.challenge-choices button:focus-visible { outline:3px solid #ffe0a1;outline-offset:2px; }
+.chapter-choices button:hover:not(:disabled),.challenge-choices button:hover { border-color:#efd18e; }
+@media(min-width:1000px) and (min-height:600px){
+ .journey.mission-menu .chapter-choices { grid-column:1;grid-row:2;margin:0; }
+}
+@media(max-width:760px){
+ .chapter-choices { grid-template-columns:repeat(4,minmax(0,1fr)); }
+ .challenge-choices { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+@media(max-width:420px){
+ .chapter-choices { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+
+.first-challenge-guide {
+ width:min(100%,650px);padding:12px 16px;margin-top:10px;
+ border:1px solid #e3c87d80;border-radius:10px;background:#1a3939;color:#f9e9c1;text-align:left;
+}
+.first-challenge-guide h2 { margin:0 0 4px;font-size:18px;color:#ffe2a0; }
+.first-challenge-guide p { margin:0;font-size:14px;line-height:1.6; }
+.challenge-first-reward { display:flex;align-items:center;gap:6px;color:#f7db9e; }
+
+/* Match the challenge framing and leave room above the fighters for effects. */
+body { --battle-actor-size:clamp(96px,min(28dvh,36vw),250px); }
+#screen .battle .actor-wrap {
+ width:var(--battle-actor-size);
+ height:var(--battle-actor-size);
+}
+@media (min-width:1000px) and (min-height:600px) {
+ #screen .battle .actor-wrap {
+  width:min(var(--battle-actor-size),max(90px,calc(100cqh - 24px)));
+  height:min(var(--battle-actor-size),max(90px,calc(100cqh - 24px)));
+ }
+}
+.rift-stage,.pk-duel-stage { container-type:size; }
+.rift-stage .rift-actor {
+ width:min(var(--battle-actor-size),max(82px,calc(100cqh - 44px)));
+ bottom:16px;
+}
+.pk-duel-stage .pk-fighter {
+ width:min(var(--battle-actor-size),max(82px,calc(100cqh - 44px)));
+ height:auto;aspect-ratio:1;bottom:16px;
+}
+.pk-duel-stage .pk-fighter .sprite-art { width:100%; }
+
+body[data-view=account-loading] :is(.world-header nav,.game-dock){visibility:hidden;pointer-events:none}

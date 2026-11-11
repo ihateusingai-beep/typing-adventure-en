@@ -1,0 +1,102 @@
+/* Five painted trials, one legible combat language. */
+.trial-mark{display:block;object-fit:contain;flex-shrink:0}
+.trial-chapter{display:flex;align-items:center;gap:8px}.trial-chapter .trial-mark{width:32px;height:32px}
+.challenge-card .challenge-banner .trial-mark{position:absolute;left:12px;top:12px;width:40px;height:40px;padding:0;margin:0;transform:none;object-fit:contain;z-index:3;filter:drop-shadow(0 2px 3px #0009)}
+.challenge-card .challenge-banner{background-image:linear-gradient(0deg,#081d20a6,transparent 70%),var(--challenge-scene);background-position:center;background-size:cover}
+body:has(#app.combat-layout) #bg-layer{animation:none;transform:none;filter:none;transition:none;opacity:.4}
+#app.combat-layout{background:linear-gradient(180deg,#09221ce8,#061d1bee);border:1px solid #cbb78477;box-shadow:0 18px 50px #0005}
+#app.combat-layout #arena{background:linear-gradient(180deg,#071d2426,#071d2414 65%,#071d2444),var(--trial-scene) center/100% 100% no-repeat;border:1px solid color-mix(in srgb,var(--trial-accent,#a9c6ae),transparent 45%);box-shadow:inset 0 0 28px #071e2630}
+#app.combat-layout #arena-light{opacity:.14}#app.combat-layout #hit-line:not(.impact){opacity:0}
+#trial-location{position:absolute;top:12px;left:14px;display:flex;align-items:center;gap:8px;padding:7px 11px 7px 7px;max-width:38%;background:#092427e8;border:1px solid #c7d0a23d;border-radius:7px;z-index:10;pointer-events:none;color:#e3d9b2;font-size:10px;line-height:1.3;letter-spacing:1px}
+#trial-location .trial-mark{width:34px;height:34px}#trial-location small{display:block;font-size:14px;color:#f5e6bd;line-height:1.5;letter-spacing:1px;white-space:nowrap}
+#app.combat-layout #battle-target-zone{border-color:color-mix(in srgb,var(--trial-accent,#b9c8a9),transparent 70%);box-shadow:inset 0 1px #dce1ac12}
+#app.combat-layout .rune-orb,#app.combat-layout .shadow-bolt{width:58px;height:58px;min-width:58px;background:none;border:0;box-shadow:none;border-radius:0;color:#fff7d9;text-shadow:0 2px 3px #001b26,1px 0 2px #001b26,-1px 0 2px #001b26;font-size:25px;letter-spacing:0;animation:none;isolation:isolate}
+#app.combat-layout .rune-orb::before,#app.combat-layout .shadow-bolt::before{content:'';position:absolute;inset:-5px;z-index:-1;pointer-events:none;background:url('../assets/v3/challenges/marks/forest.webp') center/contain no-repeat,radial-gradient(circle,#092b31ed 28%,transparent 48%);filter:drop-shadow(0 3px 5px #001c26a6)}
+#app.combat-layout .shadow-bolt::before{background-image:url('../assets/v3/challenges/marks/cave.webp'),radial-gradient(circle,#182137f5 28%,transparent 48%)}
+#app.combat-layout #word-progress>span:not(.phonetic-hint){display:inline-block;min-width:.8em;padding:.08em .12em .13em;margin:.03em;border-radius:4px;border-bottom:2px solid #bfd0c633;color:#b5c6bc;background:#06232344}
+#app.combat-layout #word-progress>span.current{color:#fff0ba;background:#385b4be0;border-color:#f1d38b;box-shadow:0 0 0 1px #e7cf8944}
+#app.combat-layout #word-progress>span.done{color:#a8dbbf;border-color:#a8dbbf77;background:#17413766}
+.combat-charge[hidden],.combat-charge i[hidden]{display:none!important}.combat-charge i{width:10px;height:14px;border-radius:3px;transform:skew(-10deg)}
+#battle-target-zone:has(#stage2-qte-panel.show) #prompt-main{display:none}
+#app.combat-layout #stage2-qte-panel{border:1px solid #b9d6dd66;background:#102d3cee;border-radius:7px;padding:5px 16px;min-width:116px}
+#stage2-qte-label{font-size:12px;letter-spacing:1px}#stage2-qte-key{font-size:30px;line-height:1.1;color:#f6eac0}#stage2-qte-countdown{font-size:12px;font-variant-numeric:tabular-nums;color:#c2dfe9}
+#app.combat-layout #boss-qte-panel{border-color:#e4b88099;background:linear-gradient(110deg,#443226f7,#1e3430fa);border-width:2px}
+#arena[data-encounter=defeated] #trial-location{border-color:#e6d28b88}
+@media(max-height:650px) and (min-width:701px){#trial-location{top:8px;left:10px;padding:5px 8px 5px 5px;gap:6px}#trial-location .trial-mark{width:26px;height:26px}#trial-location small{font-size:12px}#encounter-health{top:8px;right:10px;padding:6px 9px}}
+@media(max-width:700px){
+ #app.combat-layout #arena{background-size:cover;background-position:center bottom}
+ #trial-location{top:8px;left:8px;max-width:36%;padding:5px;gap:4px;font-size:9px;letter-spacing:0}#trial-location .trial-mark{width:24px;height:24px}#trial-location small{font-size:11px;letter-spacing:0}
+ #app.combat-layout #word-progress>span:not(.phonetic-hint){margin:1px;padding:.08em .08em .13em}
+ #app.combat-layout #stage2-qte-panel{min-width:80px;padding:5px 9px}#stage2-qte-key{font-size:27px}
+ .challenge-card .challenge-banner .trial-mark{width:32px;height:32px;left:8px;top:8px}
+}
+#app.combat-layout .enemy-script-name{display:none}
+@media(min-width:701px){.encounter-health-name,.encounter-health-value{font-size:14px;line-height:20px}.encounter-health-value{font-weight:600}}
+.reduced-motion #encounter-health .health-strip span{transition:none}
+
+#app.combat-layout #combo-float,#app.combat-layout .float-msg{display:none!important}
+
+/* Defense uses a shield silhouette and a text cue, even without color. */
+:is(#app.combat-layout,#battle-stage) {
+ --guard-edge:#acebff;
+ --guard-core:#154966;
+ --guard-shape:polygon(8% 8%,50% 0,92% 8%,88% 63%,77% 79%,50% 100%,23% 79%,12% 63%);
+}
+.guard-cue-mark,.guard-cue-icon { display:none; }
+#battle-target-zone[data-intent=deflect] .guard-cue-mark {
+ display:inline-flex;align-items:center;justify-content:center;gap:5px;
+ color:var(--guard-edge);font-weight:800;line-height:1;
+}
+.guard-cue-mark .game-icon,.guard-cue-icon .game-icon { width:19px;height:19px; }
+#battle-target-zone[data-intent=return] #stage2-qte-panel .guard-cue-icon,
+#battle-target-zone #boss-qte-panel .guard-cue-icon {
+ display:inline-flex;vertical-align:middle;margin-right:4px;
+}
+#battle-target-zone :is(#boss-qte-panel,#stage2-qte-panel) .guard-cue-icon + .qte-title { display:inline-block;vertical-align:middle; }
+#app.combat-layout #battle-target-zone[data-intent=return] #stage2-qte-panel,
+#app.combat-layout #battle-target-zone #boss-qte-panel {
+ border:1px solid var(--guard-edge);background:linear-gradient(125deg,#153b51,#0b2239);color:#edfaff;
+}
+#battle-target-zone[data-intent=return] #stage2-qte-label,
+#battle-target-zone #boss-qte-panel .qte-title { color:var(--guard-edge);font-weight:800; }
+#battle-target-zone[data-intent=return] #stage2-qte-key,
+#battle-target-zone #boss-qte-key,
+#app.combat-layout[data-combat-stage="3"] .shadow-bolt {
+ isolation:isolate;clip-path:var(--guard-shape);border:0;background:var(--guard-edge);
+ color:#fff;text-shadow:0 2px 3px #001b26;
+}
+#battle-target-zone[data-intent=return] #stage2-qte-key,
+#battle-target-zone #boss-qte-key {
+ position:relative;display:inline-grid;place-items:center;min-width:39px;height:36px;
+ padding:0 7px 3px;border-radius:0;font-size:clamp(21px,3vw,28px);line-height:1;
+}
+#battle-target-zone[data-intent=return] #stage2-qte-key::before,
+#battle-target-zone #boss-qte-key::before,
+#app.combat-layout[data-combat-stage="3"] .shadow-bolt::before {
+ content:'';position:absolute;inset:2px;z-index:-1;clip-path:var(--guard-shape);
+ background:radial-gradient(ellipse at 50% 18%,#246b8a,var(--guard-core) 60%,#0c2d46);
+}
+#battle-target-zone[data-intent=return] #stage2-qte-fill,
+#battle-target-zone #boss-qte-fill { background:linear-gradient(90deg,#4a9cde,var(--guard-edge)); }
+#app.combat-layout #battle-target-zone #boss-qte-panel.danger { animation:none;box-shadow:inset 0 0 0 2px #ffc37c; }
+#battle-target-zone #boss-qte-panel.danger #boss-qte-countdown { color:#ffd497; }
+#battle-target-zone[data-intent=deflect] #battle-stage-hint { margin:3px 0; }
+#battle-target-zone[data-intent=deflect] #prompt-main { line-height:1.15!important; }
+@media(max-height:650px){
+ #battle-target-zone[data-intent=deflect] #prompt-main { display:none; }
+}
+
+#target-word .story-guard-label {
+ display:inline-flex;align-items:center;gap:6px;align-self:center;
+ margin-inline-end:6px;padding:0;color:var(--guard-edge);font:700 15px system-ui;letter-spacing:.12em;
+}
+.story-guard-label .game-icon { width:24px;height:24px; }
+.story-guard-key {
+ position:relative;isolation:isolate;display:inline-grid;place-items:center;align-self:center;
+ min-width:1.38em;height:1.36em;padding:0 .18em .1em;font:inherit;line-height:1;letter-spacing:0;
+ color:#fff;clip-path:var(--guard-shape);background:var(--guard-edge);border:0;
+}
+.story-guard-key::before {
+ content:'';position:absolute;inset:2px;z-index:-1;clip-path:var(--guard-shape);
+ background:radial-gradient(ellipse at 50% 18%,#246b8a,var(--guard-core) 60%,#0c2d46);
+}

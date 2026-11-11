@@ -1,0 +1,117 @@
+/* UI detail layer: the same jade, brass and readable labels throughout the game. */
+:root{--ui-gold:#efcf87;--ui-mint:#bcdcc6;--ui-ink:#0c2627;--ui-border:#d2bd8059;--ui-text:#f1ead5;--ui-muted:#c1d2c7}
+.primary,.secondary,.quiet,.text-link,.header-button,.wood-btn{align-items:center;justify-content:center;gap:8px}
+.primary,.secondary,.quiet,.text-link,.header-button{display:inline-flex}
+button{transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease,transform .12s ease}
+button:not(:disabled){cursor:pointer}
+.primary{border:1px solid #f4dda4;box-shadow:inset 0 1px 0 #fff5,0 3px 0 #745c3570;color:#172f2a}
+.primary:hover:not(:disabled){box-shadow:inset 0 1px 0 #fff7,0 3px 0 #745c3570,0 0 18px #eaca7c30;transform:translateY(-1px)}
+.secondary:hover:not(:disabled),.quiet:hover:not(:disabled),.header-button:hover:not(:disabled){border-color:#e9cf87a6;background-color:#244641}
+:is(.primary,.secondary,.quiet,.text-link,.header-button,.wood-btn):active:not(:disabled){transform:translateY(1px)}
+button:focus-visible,summary:focus-visible,input:focus-visible{outline:3px solid #ffe0a2;outline-offset:3px}
+button:disabled{cursor:not-allowed}
+.primary>.game-icon,.secondary>.game-icon,.quiet>.game-icon,.wood-btn>.game-icon{width:22px;height:22px}
+.text-link>.game-icon{width:18px;height:18px}
+.desktop-fullscreen>.game-icon,.world-header [data-action=account]>.game-icon{width:21px;height:21px}
+.desktop-fullscreen{flex-shrink:0}
+.world-header [data-action=account]{gap:7px;white-space:nowrap}
+#player-badge{display:flex;align-items:center;gap:10px;max-width:200px;min-width:0;color:var(--ui-text)}
+.player-name{min-width:0;max-width:10ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.player-stars{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;color:var(--ui-gold);font-variant-numeric:tabular-nums}
+.player-stars .game-icon{width:19px;height:19px}
+#save-status{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;min-height:30px;padding:3px 7px;border:1px solid #b6d1b82b;border-radius:5px;background:#091e2099;color:#c8d9cb;font-size:11px;white-space:nowrap}
+#save-status .game-icon{width:17px;height:17px}
+#save-status:is([data-state=cloud-error],[data-state=storage-error],[data-state=offline]){color:#f3d399;border-color:#d1a45d70}
+#save-status:is([data-state=pending],[data-state=loading]) .game-icon{animation:ui-saving 1.2s ease-in-out infinite}
+.mission-status,.mission-goal>span{display:flex;align-items:center;gap:7px}
+.mission-status .game-icon{width:19px;height:19px}
+.mission-goal>span .game-icon{width:20px;height:20px}
+.mission-lock-note{display:flex;align-items:center;justify-content:center;gap:6px;color:#e2cfa7}
+.mission-lock-note .game-icon{width:21px;height:21px}
+.mission-menu .chapter-tabs button{display:flex;align-items:center;justify-content:center;gap:4px}
+.chapter-tabs button .game-icon{width:16px;height:16px}
+.mission-number .game-icon{width:36px;height:36px}
+.mission-card.completed .mission-number{background:#1c443c;border-color:#e4ca8b}
+.mission-card.locked .mission-number .game-icon{width:29px;height:29px}
+.mission-card.locked .mission-card-copy b{color:#bdcabe}
+.mission-card:hover .mission-number{box-shadow:0 0 0 3px #e9ca7c26,0 0 22px #d9c38620}
+.next-quest{border-color:#d2bd806e;background:linear-gradient(115deg,#132f2fef,#0c2224d9);box-shadow:inset 3px 0 #c9b27655,0 12px 26px #05181326}
+.next-quest>.primary{min-width:190px}
+.outfit-card.locked{opacity:1!important}
+.outfit-card.locked .outfit-icon{filter:grayscale(.7);opacity:.65}
+.outfit-card.locked>span{color:#c6d3c8}
+.loadout-state{display:flex!important;align-items:center;justify-content:center;gap:4px;line-height:1.4;min-height:19px;color:#c7d9cb}
+.loadout-state .game-icon{width:14px;height:14px}
+.outfit-card[aria-pressed=true] .loadout-state,.effect-option[aria-pressed=true] .loadout-state,.attack-option[aria-pressed=true] .loadout-state{color:#f3d69c}
+.outfit-card.locked .loadout-state{color:#c6cbbd}
+.attack-option .loadout-state{justify-content:flex-start}
+.effect-option:disabled{opacity:.65}
+.outfit-preview-actions button{gap:6px}
+.storage-status{display:flex;align-items:center;gap:11px;border:1px solid var(--ui-border);background:#0a2426a6;border-radius:7px;padding:16px 18px;color:#d9e5d5}
+.storage-status>.game-icon{width:30px;height:30px}
+.account .small-actions{display:flex;gap:12px;flex-wrap:wrap}
+.settings-panel .setting-row{gap:20px}
+.setting-title{font-weight:600;color:var(--ui-text)}
+.setting-row small{color:var(--ui-muted);line-height:1.6}
+.toggle{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:100px;min-height:44px;flex-shrink:0;border:1px solid #9bb09a73;border-radius:7px;background:#0d272a;color:#c3d1c5;padding:8px 11px;font-size:14px}
+.toggle-thumb{display:block;width:13px;height:13px;border-radius:50%;background:#7c9486;box-shadow:inset 0 1px 2px #0004}
+.toggle[aria-pressed=true]{background:#c6d8ae;color:#1e392e;border-color:#e2ce98;box-shadow:inset 0 1px 0 #ffffce55}
+.toggle[aria-pressed=true] .toggle-thumb{background:#295d46;box-shadow:0 0 0 3px #3a74531c}
+dialog{border:1px solid #c9b17499;border-radius:12px;box-shadow:0 24px 100px #000a;max-height:calc(100dvh - 48px);overflow:auto}
+dialog::backdrop{background:#031315ba;backdrop-filter:blur(5px)}
+.modal-heading{display:grid;grid-template-columns:32px minmax(0,1fr) 44px;gap:12px;align-items:center;padding-bottom:15px;margin-bottom:18px;border-bottom:1px solid #d5c08a39}
+.modal-heading>.game-icon{width:31px;height:31px}
+.modal-heading h2{margin:0!important;line-height:1.4;color:var(--ui-gold);font-size:25px}
+.modal-close{width:44px;height:44px;min-height:44px;padding:8px!important;border:1px solid #bdd3ac47;border-radius:6px;background:#102e30;color:#ead4a0}
+.modal-close>.game-icon{width:22px;height:22px}
+.modal-actions{gap:10px;flex-wrap:wrap}
+.modal-actions button{min-height:46px;gap:7px;line-height:1.4}
+.modal-actions .game-icon{width:21px;height:21px}
+.toast{display:none;align-items:center;justify-content:center;gap:10px;max-width:min(90vw,540px);width:max-content;bottom:110px!important;padding:13px 18px!important;border:1px solid #c7cc8d80;border-radius:8px;background:#102e2ef5!important;color:#e3eddc!important;box-shadow:0 8px 32px #0007;line-height:1.6;pointer-events:none}
+.toast>.game-icon{width:23px;height:23px}
+.toast>span{min-width:0;overflow-wrap:anywhere}
+.toast[data-kind=warning]{border-color:#e3b475a6;color:#f5d5a6!important}
+body:is([data-view=battle],[data-view=legacy],[data-view=dialogue]) .toast{bottom:26px!important}
+.wood-btn{display:inline-flex}
+#script-battle-help,#script-next-stage{gap:6px}
+#script-battle-help .game-icon{width:20px;height:20px}
+@keyframes ui-saving{0%,100%{opacity:.6}50%{opacity:1}}
+@media(min-width:1000px) and (min-height:600px){
+ .mission-menu .chapter-tabs button{font-size:13px;padding-inline:4px}
+ .chapter-tabs button .game-icon{width:14px;height:14px}
+ #screen .wardrobe .outfit-card small{font-size:11px}
+ .world-header nav{gap:8px}
+ .settings-links{gap:12px;flex-wrap:wrap}
+}
+@media(max-width:1199px){#save-status{display:none}}
+@media(max-width:999px){#player-badge{display:none}}
+@media(max-width:700px){
+ .world-header [data-action=account]{padding-inline:10px;gap:5px}
+ .world-header [data-action=account]>.game-icon{width:20px;height:20px}
+ .primary>.game-icon,.secondary>.game-icon{width:21px;height:21px}
+ .mission-number .game-icon,.mission-card.locked .mission-number .game-icon{width:23px;height:23px}
+ .chapter-tabs button .game-icon{width:13px;height:13px}
+ .mission-menu .chapter-tabs button{gap:3px}
+ .outfit-preview-actions button{gap:5px}
+ .loadout-state{gap:2px}
+ .loadout-state .game-icon{width:12px;height:12px}
+ .settings-panel .setting-row{gap:10px}
+ .toggle{min-width:88px}
+ .modal-heading{grid-template-columns:27px minmax(0,1fr) 40px;gap:8px}
+ .modal-heading>.game-icon{width:26px;height:26px}
+ .modal-heading h2{font-size:22px}
+ .modal-close{width:40px;height:40px;min-height:40px}
+ .modal-actions button{flex:1 1 120px;min-width:0}
+ .toast{bottom:108px!important;padding:11px 14px!important;font-size:14px}
+ .text-link{min-height:40px}
+}
+@media(prefers-reduced-motion:reduce){button{transition:none!important}#save-status .game-icon{animation:none!important}}
+.reduced #save-status .game-icon{animation:none}
+
+.action-key{font:12px/1.4 'PingFang TC',sans-serif;padding:2px 5px;border:1px solid currentColor;border-radius:3px;opacity:.8;white-space:nowrap}
+/* Hide the desktop shortcut where the compact header has no spare row. */
+.desktop-fullscreen{display:none}
+.outfit-preview-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:min(100%,320px);max-width:320px!important;gap:8px}
+.outfit-preview-actions button{min-width:0}
+@media(min-width:1000px) and (min-height:600px){.desktop-fullscreen{display:inline-flex}}
+.reduced button{transition:none!important}

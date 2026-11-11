@@ -1,0 +1,9 @@
+import {actorGeometry} from '../actor-point.mjs';
+export class DuelFeedback{
+ constructor(stage,{reduced=false}={}){Object.assign(this,{stage,reduced,nodes:[],timers:[],animations:[]});}
+ number(actor,value,{kind='damage',tier=0,label=''}={}){if(!value&&!label)return;const p=actorGeometry(this.stage,actor,[.5,.38]),el=document.createElement('span');el.className='pk-damage-number '+kind;el.dataset.tier=String(tier);el.setAttribute('aria-hidden','true');el.textContent=label||(kind==='heal'?'+':'−')+value;Object.assign(el.style,{left:p.x+'px',top:p.y+'px'});this.stage.append(el);this.nodes.push(el);if(!this.reduced){const animation=el.animate([{opacity:0,transform:'translate(-50%,0) scale(.65)'},{opacity:1,transform:'translate(-50%,-18px) scale(1.08)',offset:.18},{opacity:1,transform:'translate(-50%,-33px) scale(1)',offset:.65},{opacity:0,transform:'translate(-50%,-65px) scale(.9)'}],{duration:850,easing:'ease-out',fill:'forwards'});this.animations.push(animation);}this.timers.push(setTimeout(()=>{el.remove();this.nodes=this.nodes.filter(n=>n!==el);},900));}
+ impact(actor,damage,tier=0){this.number(actor,damage,{tier});if(this.reduced)return;actor.freezeFor?.(45+tier*15);const force=2+tier*1.4;this.animations.push(this.stage.animate([{transform:'translate3d(0,0,0)'},{transform:`translate3d(${-force}px,1px,0)`},{transform:`translate3d(${force*.75}px,-1px,0)`},{transform:`translate3d(${-force*.4}px,0,0)`},{transform:'translate3d(0,0,0)'}],{duration:160+tier*22,easing:'ease-out'}));this.animations=this.animations.filter(a=>a.playState!=='finished');}
+ pause(){this.animations.forEach(a=>{if(a.playState==='running')a.pause();});}
+ resume(){this.animations.forEach(a=>{if(a.playState==='paused')a.play();});}
+ destroy(){this.timers.forEach(clearTimeout);this.nodes.forEach(n=>n.remove());this.animations.forEach(a=>a.cancel());this.nodes=[];this.animations=[];}
+}

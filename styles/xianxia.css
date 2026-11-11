@@ -1,0 +1,104 @@
+.painted-fx{display:block;position:absolute;z-index:7;pointer-events:none;background-size:400% 400%;background-repeat:no-repeat;transform:translate(-50%,-50%);filter:drop-shadow(0 0 8px #b7e9e044);contain:layout style;will-change:transform,opacity}
+.painted-fx[data-kind=hurt]{filter:sepia(.5) saturate(1.5) hue-rotate(310deg)}
+.costume-preview{isolation:isolate;position:relative}.costume-preview .painted-fx{z-index:2}
+.outfit-preview-actions{position:relative;z-index:4;display:flex;justify-content:center;flex-wrap:wrap;gap:8px}.outfit-preview-actions button{font-size:13px;padding:9px 13px}
+.outfit-filters{grid-column:1/-1;display:flex;gap:6px;padding:5px 0 8px;position:sticky;top:0;z-index:3;background:#142f2e}
+.outfit-filters button{min-height:36px;padding:6px 14px;border:1px solid #b7c9a64d;color:#c6d9ca;background:#112b2b;border-radius:4px;font-size:13px}.outfit-filters button[aria-pressed=true]{background:#d8c48b;color:#233e35;border-color:#f2dcaa}
+.wardrobe:has([data-realm=true]) .costume-preview::after{content:none}
+.outfit-card[data-realm]{border-color:#b6a0e660}.outfit-card[data-realm] small{color:#d2b9ef}.outfit-card[data-realm][aria-pressed=true]{border-color:#ecd49b;box-shadow:inset 0 0 18px #dfcc8722}
+.reduced .painted-fx,.reduced-motion .painted-fx{display:none!important}
+@media(prefers-reduced-motion:reduce){.painted-fx{display:none!important}}
+@media(min-width:1000px) and (min-height:600px){#screen .wardrobe:has([data-realm=true]) .outfit-preview{align-self:center}.outfit-filters{padding-block:0 6px}.outfit-filters button{min-height:32px}.outfit-preview-actions{max-width:330px;margin-inline:auto}}
+
+@media(min-width:1000px) and (min-height:600px){#screen .wardrobe .outfit-options:has([data-action=outfit-filter][data-id=immortal][aria-pressed=true]){grid-template-columns:repeat(6,minmax(0,1fr))}}
+.battle :is(.target-area,.story-hud,.story-message,.keyboard-hint,.battle-help-row){position:relative;z-index:12}
+@media(min-width:1000px) and (min-height:600px){
+ #screen .wardrobe{grid-template-rows:minmax(0,1fr)}
+ #screen .wardrobe .outfit-preview{height:100%;max-height:100%;min-height:0;justify-content:center}
+ #screen .wardrobe #outfit-motion{width:min(100%,calc(100dvh - 350px));flex-shrink:0}
+ .outfit-preview-actions{flex-shrink:0}
+}
+@media(min-width:1000px) and (min-height:600px) and (max-height:700px){
+ #screen .wardrobe .outfit-body{padding:8px 10px}
+ #screen .wardrobe .collection-heading{margin-bottom:4px}
+ #screen .wardrobe .collection-tabs button{min-height:32px;padding:5px 8px;font-size:12px}
+ #screen .wardrobe .outfit-body>.chapter{font-size:11px;line-height:1.2}
+ #screen .wardrobe .outfit-body>h1{font-size:22px!important;line-height:1.2;margin:3px 0}
+ #screen .wardrobe:not(.collection-view) .outfit-body>p.small:not(.outfit-fairness){font-size:11px!important;line-height:1.35;margin:2px 0}
+ #screen .wardrobe .outfit-power{padding:4px 0;font-size:13px;line-height:1.3}
+ #screen .wardrobe .outfit-power small{display:none}
+ #screen .wardrobe:not(.collection-view) .outfit-options{margin:4px 0}
+ #screen .wardrobe .outfit-caption{font-size:11px;line-height:1.2;margin:3px 0}
+ #screen .wardrobe .outfit-body>.primary{min-height:40px;padding:7px 12px;font-size:14px}
+ #screen .wardrobe .outfit-body>.outfit-fairness{font-size:10px!important;line-height:1.3;margin:3px 0 0}
+ .outfit-preview-actions button{min-height:40px;padding:7px 10px}
+}
+@media(min-width:1000px) and (min-height:600px){#screen .wardrobe #outfit-motion{height:auto;aspect-ratio:1}}
+
+/* Painted character art uses smooth sampling; nearest-neighbour enlarges source defects. */
+.sprite-art,.outfit-preview img,.hero-figure img,.actors img{image-rendering:auto}
+.sprite-art{backface-visibility:hidden}
+.sprite-art::before,.sprite-art::after{pointer-events:none}
+@media(min-width:1000px) and (min-height:600px){#screen .wardrobe #outfit-motion{width:min(100%,calc(100dvh - 350px),340px)}}
+.enemy-canvas,.enemy-script-fx{image-rendering:auto}
+/* The new sprite owns travel; old wrapper motion would double the dash and jump. */
+#hero-wrap:has(.legacy-motion):is(.dash,.leap,.jump,.teleport-strike){animation:none!important}
+
+.effect-option .painted-effect-icon{width:46px;height:46px;object-fit:contain;display:block;margin:0 auto 5px;background:none;border:0;box-shadow:none}
+.painted-fx[data-signature]{filter:drop-shadow(0 0 5px #e4fff326)}
+
+/* Center the wardrobe sprite on the same foot anchor for every pose. */
+.outfit-cast-stage{position:relative;width:100%;aspect-ratio:1.25;max-width:460px;overflow:hidden;isolation:isolate}
+#screen .wardrobe .outfit-cast-stage #outfit-motion{position:absolute;width:56%;height:auto;aspect-ratio:1;left:22%;bottom:15%;z-index:3;max-width:none;flex-shrink:0;transform-origin:50% 96.875%}
+.painted-fx-frame{position:absolute;display:block;inset:0;background-repeat:no-repeat;pointer-events:none}
+.painted-fx[data-signature]{mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent),linear-gradient(0deg,transparent,#000 8%,#000 92%,transparent);mask-composite:intersect;-webkit-mask-composite:source-in}
+@media(max-width:700px){.outfit-cast-stage{aspect-ratio:1.15}.outfit-preview-actions{gap:6px;flex-wrap:wrap;justify-content:center}}
+
+/* Keep the casting face and hands readable in front of the luminous art. */
+#arena .painted-fx[data-signature],.battle .painted-fx[data-signature]{z-index:6}
+.battle .actor-wrap:has(#hero-motion){z-index:7}
+
+/* A large translucent ward belongs in front of the character, impact art on the enemy. */
+.painted-fx[data-combat]{mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent),linear-gradient(0deg,transparent,#000 5%,#000 95%,transparent);mask-composite:intersect;-webkit-mask-composite:source-in}
+.painted-fx[data-kind=guard],.costume-preview .painted-fx[data-kind=guard]{z-index:10}
+.painted-fx[data-owner=impact]{z-index:9}
+
+.celestial-light,.celestial-impact{position:absolute;pointer-events:none;z-index:5;isolation:isolate}
+.celestial-light::before,.celestial-impact::before{content:'';position:absolute;inset:-28%;border-radius:50%;background:radial-gradient(ellipse,#fff8 0%,var(--light-color) 21%,transparent 70%);mix-blend-mode:screen;filter:blur(13px);opacity:.55}
+.celestial-light img,.celestial-impact img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 8px var(--light-color)) drop-shadow(0 0 20px var(--light-color));mix-blend-mode:screen}
+.celestial-impact{z-index:4}
+.celestial-impact::after{content:'';position:absolute;inset:10%;border-radius:50%;border:2px solid var(--light-color);box-shadow:0 0 18px var(--light-color),inset 0 0 18px var(--light-color);opacity:.65}
+
+/* Impact light is local to the opponent and fades before the next beat. */
+.combat-light-mask,.combat-light-particles { position:absolute;pointer-events:none;opacity:0;z-index:6; }
+.combat-light-mask {
+ inset:0;
+ background:
+  radial-gradient(ellipse at var(--light-x) var(--light-y),color-mix(in srgb,var(--light-color) 34%,transparent),transparent 33%),
+  radial-gradient(ellipse at var(--light-x) var(--light-y),transparent 22%,#07111c5c 85%);
+}
+.combat-light-particles { left:var(--light-x);top:var(--light-y);width:0;height:0;z-index:8; }
+.combat-light-particles b {
+ position:absolute;display:block;width:calc(var(--spark-size)*2);height:var(--spark-size);border-radius:50%;
+ background:#fff8e8;box-shadow:0 0 6px 2px var(--light-color);
+ transform:translate(var(--spark-x),var(--spark-y)) rotate(var(--spark-angle));
+}
+@media(prefers-reduced-motion:reduce){.combat-light-mask,.combat-light-particles{display:none}}
+:is(.reduced,.reduced-motion) :is(.combat-light-mask,.combat-light-particles){display:none}
+
+[data-answer=correct]{--answer-ink:#c0f9d1;--answer-bg:#123d31;--answer-edge:#8de1ad}
+[data-answer=wrong]{--answer-ink:#ffe3d8;--answer-bg:#4c2827;--answer-edge:#ffac92}
+:is(#story-message,.rift-feedback,.pk-feedback,.answer-verdict)[data-answer] {
+ color:var(--answer-ink);background:var(--answer-bg);border:1px solid var(--answer-edge);
+ border-radius:7px;font-weight:750;padding:4px 10px;letter-spacing:0;
+}
+:is(#story-message,.rift-feedback,.pk-feedback)[data-answer] { width:fit-content;max-width:100%;margin-inline:auto; }
+.answer-verdict { flex-shrink:0;white-space:nowrap;font-size:12px; }
+#target-word[data-answer=wrong] :is(.current,.story-guard-key) { outline:2px solid #ffac92;outline-offset:2px; }
+#target-word[data-answer=wrong] .story-guard-key { background:#ffac92; }
+.demo-confirm-key { min-width:85px;width:auto;min-height:64px;height:auto;padding:7px 16px;margin:12px auto;background:#204741;cursor:pointer;font-size:clamp(24px,6vw,43px); }
+.demo-confirm-key:focus-visible { outline:2px solid #ffdd96;outline-offset:3px; }
+
+.answer-leading { display:inline-flex;align-items:center;gap:8px;flex-shrink:0; }
+.answer-leading:has(.combat-charge[hidden]):has(.answer-verdict[hidden]) { display:none; }
+@media(max-width:700px){.answer-leading .answer-verdict { padding-block:1px; }}
