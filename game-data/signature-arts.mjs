@@ -5,10 +5,10 @@ import {LIMITED_COSTUMES} from './limited-costumes.mjs';
 export const SIGNATURES={
   "O00": {
     "id": "O00",
-    "name": "一線破風",
+    "name": "勤勞起手",
     "family": "draw",
     "motion": "thrust",
-    "description": "收劍、拔斬，以練習劍穩穩向前出招。",
+    "description": "收劍、拔斬，勤力向前出招。",
     "fx": {
       "src": "assets/v3/signatures/O00-fx.webp",
       "columns": 4,
@@ -52,10 +52,10 @@ export const SIGNATURES={
   },
   "O01": {
     "id": "O01",
-    "name": "竹影穿林",
+    "name": "堅毅青芒",
     "family": "cross",
     "motion": "dash",
-    "description": "交步快斬，竹葉沿著雙重劍弧飛出。",
+    "description": "青光穿林，唔放棄再出一劍。",
     "fx": {
       "src": "assets/v3/signatures/O01-fx.webp",
       "columns": 4,
@@ -99,10 +99,10 @@ export const SIGNATURES={
   },
   "O02": {
     "id": "O02",
-    "name": "踏雲迴刃",
+    "name": "尊重雲風",
     "family": "leap",
     "motion": "leap",
-    "description": "騰身迴刃，兩道雲翼隨劍展開。",
+    "description": "踏雲迴刃，尊重每個節奏。",
     "fx": {
       "src": "assets/v3/signatures/O02-fx.webp",
       "columns": 4,
@@ -146,10 +146,10 @@ export const SIGNATURES={
   },
   "O03": {
     "id": "O03",
-    "name": "玄霜斷岳",
+    "name": "誠信霜護",
     "family": "heavy",
     "motion": "heavy",
-    "description": "雙手重劈，冰晶沿刃向前綻開。",
+    "description": "霜光護體，打真每個鍵。",
     "fx": {
       "src": "assets/v3/signatures/O03-fx.webp",
       "columns": 4,
@@ -193,10 +193,10 @@ export const SIGNATURES={
   },
   "O04": {
     "id": "O04",
-    "name": "天衡鎮印",
+    "name": "成材金印",
     "family": "seal",
     "motion": "heavy",
-    "description": "站穩壓印，層層金印向前鎮下。",
+    "description": "金印落下，勤學成材。",
     "fx": {
       "src": "assets/v3/signatures/O04-fx.webp",
       "columns": 4,
@@ -240,10 +240,10 @@ export const SIGNATURES={
   },
   "O05": {
     "id": "O05",
-    "name": "火羽燎原",
+    "name": "責任火羽",
     "family": "spin",
     "motion": "spin",
-    "description": "轉身掃斬，火羽化成鳳翼。",
+    "description": "火羽燎原，對自己負責。",
     "fx": {
       "src": "assets/v3/signatures/O05-fx.webp",
       "columns": 4,
@@ -287,10 +287,10 @@ export const SIGNATURES={
   },
   "O06": {
     "id": "O06",
-    "name": "月輪迴雪",
+    "name": "孝親月華",
     "family": "spin",
     "motion": "spin",
-    "description": "單腳迴旋，銀色月輪環劍而出。",
+    "description": "月輪迴雪，學懂照顧。",
     "fx": {
       "src": "assets/v3/signatures/O06-fx.webp",
       "columns": 4,
@@ -334,10 +334,10 @@ export const SIGNATURES={
   },
   "O07": {
     "id": "O07",
-    "name": "星河雙斷",
+    "name": "團結星陣",
     "family": "cross",
     "motion": "dash",
-    "description": "反手連斬，星刃交成十字。",
+    "description": "星刃交錯，齊心完成。",
     "fx": {
       "src": "assets/v3/signatures/O07-fx.webp",
       "columns": 4,
@@ -381,10 +381,10 @@ export const SIGNATURES={
   },
   "O08": {
     "id": "O08",
-    "name": "天符敕令",
+    "name": "同理符印",
     "family": "seal",
     "motion": "cast",
-    "description": "雙指結訣，三枚天符聚成陣。",
+    "description": "天符敕令，先體諒再出招。",
     "fx": {
       "src": "assets/v3/signatures/O08-fx.webp",
       "columns": 4,
@@ -428,10 +428,10 @@ export const SIGNATURES={
   },
   "O09": {
     "id": "O09",
-    "name": "幽蓮劍舞",
+    "name": "仁愛蓮舞",
     "family": "dance",
     "motion": "spin",
-    "description": "交步劍舞，蓮瓣順著劍勢綻放。",
+    "description": "蓮花劍舞，待人温柔。",
     "fx": {
       "src": "assets/v3/signatures/O09-fx.webp",
       "columns": 4,
@@ -475,10 +475,10 @@ export const SIGNATURES={
   },
   "O10": {
     "id": "O10",
-    "name": "靈墨飛白",
+    "name": "詩書飛白",
     "family": "brush",
     "motion": "cast",
-    "description": "橫筆飛白，水墨化作游龍。",
+    "description": "靈墨飛白，詩書在心。",
     "fx": {
       "src": "assets/v3/signatures/O10-fx.webp",
       "columns": 4,
@@ -522,10 +522,10 @@ export const SIGNATURES={
   },
   "O11": {
     "id": "O11",
-    "name": "青霄環陣",
+    "name": "禮樂環陣",
     "family": "orbit",
     "motion": "orbit",
-    "description": "御筆畫環，青玉陣刃環繞而出。",
+    "description": "青環合陣，懂禮守序。",
     "fx": {
       "src": "assets/v3/signatures/O11-fx.webp",
       "columns": 4,
@@ -569,10 +569,10 @@ export const SIGNATURES={
   },
   "O12": {
     "id": "O12",
-    "name": "金闕曜日",
+    "name": "書畫曜日",
     "family": "seal",
     "motion": "cast",
-    "description": "合掌結印，金色日輪向前展開。",
+    "description": "金闕曜日，字如其人。",
     "fx": {
       "src": "assets/v3/signatures/O12-fx.webp",
       "columns": 4,
@@ -616,10 +616,10 @@ export const SIGNATURES={
   },
   "O13": {
     "id": "O13",
-    "name": "紫宸驚雷",
+    "name": "忠義驚雷",
     "family": "orbit",
     "motion": "orbit",
-    "description": "引筆落雷，紫電雷珠接連閃現。",
+    "description": "紫電驚雷，忠於承諾。",
     "fx": {
       "src": "assets/v3/signatures/O13-fx.webp",
       "columns": 4,
@@ -663,10 +663,10 @@ export const SIGNATURES={
   },
   "O14": {
     "id": "O14",
-    "name": "太虛流焰",
+    "name": "山河流焰",
     "family": "leap",
     "motion": "leap",
-    "description": "躍身挑筆，流焰與極光交織。",
+    "description": "流霞山河，心繫家國。",
     "fx": {
       "src": "assets/v3/signatures/O14-fx.webp",
       "columns": 4,
@@ -710,10 +710,10 @@ export const SIGNATURES={
   },
   "O15": {
     "id": "O15",
-    "name": "九霄御龍",
+    "name": "成材御龍",
     "family": "dragon",
     "motion": "dragon",
-    "description": "揮筆成圓，金龍隨掌勢出陣。",
+    "description": "金冠御龍，成材服務。",
     "fx": {
       "src": "assets/v3/signatures/O15-fx.webp",
       "columns": 4,

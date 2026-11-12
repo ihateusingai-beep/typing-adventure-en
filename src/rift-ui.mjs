@@ -106,7 +106,7 @@ export class RiftArena{
     if(feedback.dataset.answer==='correct')feedback.textContent='✓ 按對了 · '+this.enemy.attack+' · '+(e.received?'受傷 '+e.received:'護盾擋下攻擊');
    });
    feedback.textContent='✓ 按對了 · '+this.enemy.name+'準備反擊。';
-  }else feedback.textContent='✓ 按對了 · '+(e.damage?'命中 '+e.damage+' 點傷害！':e.proc?'靈寶已生效。':'正在蓄力。');
+  }else feedback.textContent='✓ 按對了 · '+(e.damage?'命中 '+e.damage+' 點傷害！':e.proc?'品格寶物已生效。':'正在蓄力。');
  }
  key(code){
   const e=riftInput(this.state,code);if(!e)return false;

@@ -10,22 +10,24 @@ export const CHAPTERS = CURRICULUM.chapters;
 export const NODE_BY_ID = Object.fromEntries(NODES.map(n => [n.id, n]));
 export const VERSION = '3.24.4';
 export const OUTFITS = [
-  { effect:'dust', effectName:'普通', effectDescription:'平常練習。', id:'O00', name:'藍衫', title:'開始', node:null, description:'藍衫。由第一粒鍵開始。' },
-  { effect:'bamboo', effectName:'竹', effectDescription:'綠色光。', id:'O01', name:'青衫', title:'識 F J', node:'S01-04', description:'青衫。你識搵 F 同 J。' },
-  { effect:'wind', effectName:'風', effectDescription:'藍色風。', id:'O02', name:'雲衫', title:'上面鍵', node:'S03-05', description:'輕便衫。上面鍵都識。' },
-  { effect:'frost', effectName:'冰', effectDescription:'冰藍色。', id:'O03', name:'霜衫', title:'數字', node:'S05-05', description:'短披風。數字鍵都識。' },
-  { effect:'gold', effectName:'金', effectDescription:'金色光。', id:'O04', name:'金衫', title:'完成', node:'S07-03', description:'長袍。全部關卡完成！' },
-  {id:'O05',name:'紅衫',title:'中間行',node:'S02-04',description:'紅披風。中間一行識撳。',effect:'ember',effectName:'火',effectDescription:'橙色光。'},
-  {id:'O06',name:'月衫',title:'下面鍵',node:'S04-04',description:'月白衫。下面鍵都識。',effect:'moon',effectName:'月',effectDescription:'銀色光。'},
-  {id:'O07',name:'星衫',title:'字詞',node:'S06-04',description:'紫星衫。識連住撳。',effect:'star',effectName:'星',effectDescription:'紫色星光。'},
- {id:'O08',name:'符衫',title:'珍藏',item:'outfit-O08',description:'特別衫。',effect:'gold',effectName:'金符',effectDescription:'金色。'},
- {id:'O09',name:'蓮衫',title:'珍藏',item:'outfit-O09',description:'蓮花衫。',effect:'lotus',effectName:'蓮',effectDescription:'粉紫光。'},
- {id:'O10',name:'練氣衫',title:'仙途',item:'outfit-O10',realm:'練氣',category:'immortal',description:'青白衫。',effect:'wind',effectName:'練氣',effectDescription:'靈氣。'},
- {id:'O11',name:'築基衫',title:'仙途',item:'outfit-O11',realm:'築基',category:'immortal',description:'青袍。',effect:'bamboo',effectName:'築基',effectDescription:'靈氣。'},
- {id:'O12',name:'金丹衫',title:'仙途',item:'outfit-O12',realm:'金丹',category:'immortal',description:'白金衫。',effect:'gold',effectName:'金丹',effectDescription:'靈氣。'},
- {id:'O13',name:'元嬰衫',title:'仙途',item:'outfit-O13',realm:'元嬰',category:'immortal',description:'紫衫。',effect:'star',effectName:'元嬰',effectDescription:'靈氣。'},
- {id:'O14',name:'化神衫',title:'仙途',item:'outfit-O14',realm:'化神',category:'immortal',description:'流霞衫。',effect:'aurora',effectName:'化神',effectDescription:'靈氣。'},
- {id:'O15',name:'渡劫衫',title:'仙途',item:'outfit-O15',realm:'渡劫',category:'immortal',description:'金冠衫。',effect:'moon',effectName:'渡劫',effectDescription:'靈氣。'},
+  // O00–O07 旅程衫 · 首要價值觀（SEN 短名）
+  { effect:'dust', effectName:'平常練習', effectDescription:'專心打字。', id:'O00', name:'勤勞藍衫', title:'開始', node:null, description:'勤力練習。由第一粒鍵開始。' },
+  { effect:'bamboo', effectName:'堅毅青芒', effectDescription:'綠色光。', id:'O01', name:'堅毅青衫', title:'識 F J', node:'S01-04', description:'認到 F 同 J，繼續唔放棄。' },
+  { effect:'wind', effectName:'尊重雲風', effectDescription:'藍色風。', id:'O02', name:'尊重雲衫', title:'上面鍵', node:'S03-05', description:'上面鍵都識，尊重每粒鍵。' },
+  { effect:'frost', effectName:'誠信霜護', effectDescription:'冰藍色。', id:'O03', name:'誠信霜袍', title:'數字', node:'S05-05', description:'數字鍵都準，講真做實。' },
+  { effect:'gold', effectName:'成材金印', effectDescription:'金色光。', id:'O04', name:'成材金袍', title:'完成', node:'S07-03', description:'全部關卡完成！勤學成材。' },
+  {id:'O05',name:'責任紅披',title:'中間行',node:'S02-04',description:'中間一行識撳，對自己負責。',effect:'ember',effectName:'責任火羽',effectDescription:'橙色光。'},
+  {id:'O06',name:'孝親月衫',title:'下面鍵',node:'S04-04',description:'下面鍵都識；學懂照顧。',effect:'moon',effectName:'孝親月華',effectDescription:'銀色光。'},
+  {id:'O07',name:'團結星袍',title:'字詞',node:'S06-04',description:'字母連住撳，齊心完成。',effect:'star',effectName:'團結星陣',effectDescription:'紫色星光。'},
+  // O08–O15 練習星解鎖 · 其餘價值 + 中華文化
+  {id:'O08',name:'同理符衣',title:'同理心',item:'outfit-O08',description:'識體諒，先出呢套。',effect:'gold',effectName:'同理符印',effectDescription:'金色。'},
+  {id:'O09',name:'仁愛蓮衣',title:'仁愛',item:'outfit-O09',description:'待人温柔。',effect:'lotus',effectName:'仁愛花雨',effectDescription:'粉紫光。'},
+  {id:'O10',name:'詩書青衣',title:'詩書',item:'outfit-O10',realm:'詩書',category:'immortal',description:'中華詩書。',effect:'wind',effectName:'詩書飛白',effectDescription:'書卷氣。'},
+  {id:'O11',name:'禮樂青袍',title:'禮樂',item:'outfit-O11',realm:'禮樂',category:'immortal',description:'懂禮、守序。',effect:'bamboo',effectName:'禮樂環陣',effectDescription:'禮樂光。'},
+  {id:'O12',name:'書畫白金',title:'書畫',item:'outfit-O12',realm:'書畫',category:'immortal',description:'字如其人。',effect:'gold',effectName:'書畫曜日',effectDescription:'墨金光。'},
+  {id:'O13',name:'忠義紫袍',title:'忠義',item:'outfit-O13',realm:'忠義',category:'immortal',description:'忠於承諾。',effect:'star',effectName:'忠義驚雷',effectDescription:'紫電。'},
+  {id:'O14',name:'山河流霞',title:'家國',item:'outfit-O14',realm:'家國',category:'immortal',description:'認識祖國山河。',effect:'aurora',effectName:'山河流彩',effectDescription:'山河光。'},
+  {id:'O15',name:'成材金冠',title:'成材',item:'outfit-O15',realm:'成材',category:'immortal',description:'勤學成材，服務社群。',effect:'moon',effectName:'成材日輪',effectDescription:'金光。'},
  ...LIMITED_COSTUMES, ...RIFT_OUTFITS, ...ORDINARY_HEROINES
 ].sort((a,b)=>(a.category==='rift'?'ZZ':a.item?'Z':a.node??'').localeCompare(b.category==='rift'?'ZZ':b.item?'Z':b.node??''));
 export const ENEMIES = {

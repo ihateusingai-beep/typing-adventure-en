@@ -5,23 +5,23 @@ import {LIMITED_COSTUMES} from '../game-data/limited-costumes.mjs';
 // Free in-game collection. These are personal practice rewards, never purchases.
 export const DRAW_COST=100,DUPLICATE_REFUND=30;
 export const EFFECTS=[
- {id:'auto',name:'服裝原生特效',color:null,item:null},
- ...[['bamboo','竹葉流光','#a3e7a3','O01'],['ember','火羽劍芒','#ffab73','O05'],['wind','踏雲劍風','#9de5e9','O02'],['moon','月華漣漪','#c7e9ff','O06'],['frost','玄霜結界','#a8d9ff','O03'],['star','星河劍陣','#d7b4ff','O07'],['gold','天衡金印','#ffdf87','O04']].map(([id,name,color,outfit])=>({id,name,color,outfit})),
- {id:'lotus',name:'幽蓮花雨',color:'#f7afe3',item:'fx-lotus'},
- {id:'thunder',name:'紫霄雷紋',color:'#bbacff',item:'fx-thunder'},
- {id:'aurora',name:'流彩極光',color:'#91f7dc',item:'fx-aurora'},
- {id:'solar',name:'日輪金焰',color:'#ffd188',item:'fx-solar'},
+ {id:'auto',name:'行裝原生特效',color:null,item:null},
+ ...[['bamboo','堅毅青芒','#a3e7a3','O01'],['ember','責任火羽','#ffab73','O05'],['wind','尊重雲風','#9de5e9','O02'],['moon','孝親月華','#c7e9ff','O06'],['frost','誠信霜護','#a8d9ff','O03'],['star','團結星陣','#d7b4ff','O07'],['gold','成材金印','#ffdf87','O04']].map(([id,name,color,outfit])=>({id,name,color,outfit})),
+ {id:'lotus',name:'仁愛花雨',color:'#f7afe3',item:'fx-lotus'},
+ {id:'thunder',name:'承擔雷紋',color:'#bbacff',item:'fx-thunder'},
+ {id:'aurora',name:'山河流彩',color:'#91f7dc',item:'fx-aurora'},
+ {id:'solar',name:'成材日輪',color:'#ffd188',item:'fx-solar'},
  ...CELESTIAL_EFFECT_OUTFITS.map((outfit,index)=>({
   id:outfit.id,name:outfit.effectName,outfit:outfit.id,
   color:['#ffb376','#dcbdff','#9af9b7','#9edaff'][index],icon:riftArt('fx',outfit.id)
  }))
 ];
-export const ATTACK_STYLES=[{id:'sword',name:'衣裝招式',description:'使用這套衣裝的專屬劍式或御筆招式。',item:null},{id:'spell',name:'星火法術',description:'法陣蓄光，飛出星火法球命中對手。',item:'attack-spell'},{id:'talisman',name:'御符術',description:'祭出三枚靈符，結成符印命中對手。',item:'attack-talisman'}];
+export const ATTACK_STYLES=[{id:'sword',name:'行裝招式',description:'用呢套衫嘅專屬招式。',item:null},{id:'spell',name:'明志星火',description:'蓄光飛出星火，命中對手。',item:'attack-spell'},{id:'talisman',name:'誠信符印',description:'祭出三枚符印命中對手。',item:'attack-talisman'}];
 const ORIGINAL_DRAW_POOL=[
- {id:'outfit-O08',kind:'outfit',name:'天符星師',target:'O08',weight:8,rarity:'珍稀'},
- {id:'outfit-O09',kind:'outfit',name:'幽蓮劍仙',target:'O09',weight:7,rarity:'珍稀'},
- ...[['O10','靈墨練氣'],['O11','青霄築基'],['O12','金闕丹心'],['O13','紫宸元嬰'],['O14','太虛化神'],['O15','九霄渡劫']].map(([target,name])=>({id:'outfit-'+target,kind:'outfit',name,target,weight:3,rarity:'仙途'})),
- ...[['lotus','幽蓮花雨',8],['thunder','紫霄雷紋',8],['aurora','流彩極光',8],['solar','日輪金焰',11]].map(([id,name,weight])=>({id:'fx-'+id,kind:'effect',name,target:id,weight,rarity:'特效'})),
+ {id:'outfit-O08',kind:'outfit',name:'同理符衣',target:'O08',weight:8,rarity:'珍稀'},
+ {id:'outfit-O09',kind:'outfit',name:'仁愛蓮衣',target:'O09',weight:7,rarity:'珍稀'},
+ ...[['O10','詩書青衣'],['O11','禮樂青袍'],['O12','書畫白金'],['O13','忠義紫袍'],['O14','山河流霞'],['O15','成材金冠']].map(([target,name])=>({id:'outfit-'+target,kind:'outfit',name,target,weight:3,rarity:'文化'})),
+ ...[['lotus','仁愛花雨',8],['thunder','承擔雷紋',8],['aurora','山河流彩',8],['solar','成材日輪',11]].map(([id,name,weight])=>({id:'fx-'+id,kind:'effect',name,target:id,weight,rarity:'特效'})),
  ...ATTACK_STYLES.filter(s=>s.item).map(s=>({id:s.item,kind:'attack',name:s.name,target:s.id,weight:16,rarity:'流派'}))
 ];
 export const LIMITED_POOL=LIMITED_COSTUMES.map(({id,item,name})=>({id:item,kind:'outfit',name,target:id,rarity:'限定'}));

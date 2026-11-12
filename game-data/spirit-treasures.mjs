@@ -1,13 +1,14 @@
 import {RIFT_TREASURES,riftArt,forgeLevel} from './rift.mjs';
 // One independent treasure slot for solo adventures.
+// Display names: 品格寶物（EDB 首要價值觀 · SEN 短名）
 export const TREASURES=Object.freeze([
- {id:'none',name:'不攜帶靈寶',role:'自在修行',description:'只使用服裝與已安裝的特效。',node:null,color:'#c5ccb9',kind:'none'},
- {id:'flame',name:'赤霄劍匣',role:'飛劍追擊',description:'每兩次有效攻擊，飛劍再追擊 3 點。',node:'S01-04',chapter:1,color:'#ff9f66',kind:'chase'},
- {id:'frost',name:'玄冰靈珠',role:'凝霜護體',description:'每十連擊凝聚 8 點護盾，上限 8 點。',node:'S02-04',chapter:2,color:'#92e5ff',kind:'ward'},
- {id:'thunder',name:'天雷法印',role:'連擊雷爆',description:'每十二連擊蓄雷，下一次攻擊追加 6 點。',node:'S03-05',chapter:3,color:'#d1a0ff',kind:'burst'},
- {id:'lotus',name:'青蓮玉佩',role:'青蓮回春',description:'每十二連擊回復 4 點氣血，不超過上限。',node:'S04-04',chapter:4,color:'#a9efb7',kind:'heal'}
+ {id:'none',name:'專心練習',role:'唔帶加成',description:'只靠衫同特效，專心打字。',node:null,color:'#c5ccb9',kind:'none'},
+ {id:'flame',name:'堅毅羽',role:'唔放棄',description:'每兩次有效攻擊，再追擊 3 點。',node:'S01-04',chapter:1,color:'#ff9f66',kind:'chase'},
+ {id:'frost',name:'守法鏡',role:'守規則',description:'每十連擊凝聚 8 點護盾，上限 8 點。',node:'S02-04',chapter:2,color:'#92e5ff',kind:'ward'},
+ {id:'thunder',name:'承擔鼓',role:'敢擔當',description:'每十二連擊蓄力，下一次攻擊追加 6 點。',node:'S03-05',chapter:3,color:'#d1a0ff',kind:'burst'},
+ {id:'lotus',name:'仁愛蓮',role:'關愛',description:'每十二連擊回復 4 點氣血，不超過上限。',node:'S04-04',chapter:4,color:'#a9efb7',kind:'heal'}
 ]);
-export const ALL_TREASURES=[...TREASURES,...RIFT_TREASURES.map(t=>({...t,role:'秘境靈寶',forge:true}))];
+export const ALL_TREASURES=[...TREASURES,...RIFT_TREASURES.map(t=>({...t,role:'秘境寶物',forge:true}))];
 export const treasureFor=id=>ALL_TREASURES.find(t=>t.id===id)??TREASURES[0];
 export const treasureId=id=>treasureFor(id).id;
 export const treasureArt=id=>id==='none'?'assets/v3/ui/icons/shield.webp':treasureFor(id).forge?riftArt('relic',id):'assets/v3/treasures/'+treasureId(id)+'.png';
@@ -22,7 +23,7 @@ export function treasureProc(id,{combo=0,strikes=0,strike=false}={}){
 }
 export const comboTier=combo=>combo>=24?3:combo>=12?2:combo>=6?1:0;
 export const comboDamage=combo=>[9,11,14,18][comboTier(combo)];
-export const comboName=combo=>['起勢','連斬','破陣','無雙'][comboTier(combo)];
+export const comboName=combo=>['立志','勤練','承擔','成材'][comboTier(combo)];
 
 export function riftRelicProc(id,forge,context){
  const {combo,strikes,strike}=context;
