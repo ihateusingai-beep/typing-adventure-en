@@ -123,3 +123,6 @@
 #app.combat-layout #arena #toast{top:auto;bottom:12px;max-width:70%;font-size:13px;line-height:1.4;padding:7px 13px;white-space:normal;text-align:center}
 #arena[data-encounter=defeated] #projectile-layer{opacity:.25}
 @media(max-width:700px){#encounter-health{right:8px;top:8px;width:min(190px,58%);padding:6px 8px;gap:4px 6px}.encounter-health-name,.encounter-health-value{font-size:11px;line-height:16px}#app.combat-layout #arena #toast{font-size:12px;max-width:90%}}
+/* COVER OVERRIDE cover1 */
+@media(max-width:900px){.home .hero-figure.hero-cover .portrait-art{height:auto!important;max-height:42vh!important;width:min(78vw,calc(42vh * var(--portrait-aspect,.55)))!important}.entry-portrait.hero-cover .portrait-art{height:auto!important;max-height:42vh!important}}
+@media(min-width:901px){.home .hero-figure.hero-cover .portrait-art,.entry-portrait.hero-cover .portrait-art{height:auto!important;max-height:min(72vh,680px)!important}}

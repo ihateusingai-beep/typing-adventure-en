@@ -36,3 +36,28 @@ body[data-view=battle] .battle{min-height:calc(100dvh - 85px);padding:15px 4%}.s
 @media(max-height:650px) and (min-width:761px){.world-header{height:70px}.view.active{min-height:440px}.game-dock{margin:8px auto 12px}.game-dock button{min-height:54px}.mission-list.mission-map{height:260px}.mission-enemy{width:110px;height:110px}.mission-detail{padding:15px 20px}.home .hero-figure .portrait-art{min-width:190px}.home .headline{font-size:35px}.next-quest{margin-top:18px}.dialogue-copy{bottom:5px}.dialogue .speech{font-size:19px}.dialogue-art .portrait-art{width:180px}}
 @media(prefers-reduced-motion:reduce){.game-dock *,.mission-map *{animation:none!important;transition:none!important}}
 .challenge-card .primary{min-height:48px}
+/* === COVER HERO v=cover1 === */
+/* Entry + home: bigger player hero, adventure stage */
+body[data-view=entry] .entry,
+body[data-view=home] .home{align-items:center}
+.hero-cover{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px;position:relative;z-index:1}
+.hero-cover-stage{position:relative;display:grid;place-items:end center;width:100%;filter:drop-shadow(0 18px 28px #0008)}
+.hero-cover-stage::before{content:'';position:absolute;left:10%;right:10%;bottom:6%;height:18%;border-radius:50%;background:radial-gradient(ellipse,#f0cc7b55,#0000 70%);pointer-events:none;z-index:0}
+.hero-cover .portrait-art{position:relative;z-index:1;width:min(100%,calc(68vh * var(--portrait-aspect,.55)));max-height:min(72vh,680px);min-width:280px;margin:0 auto}
+.hero-cover figcaption{color:var(--game-gold);font:24px Wuxia,serif;text-align:center;text-shadow:0 2px 10px #000c;margin:4px 0 0}
+.hero-cover figcaption small{display:block;font:14px 'PingFang TC',sans-serif;color:#e8f0d8;margin-top:6px;letter-spacing:1px}
+body[data-view=entry] .entry-portrait.hero-cover{width:100%;max-width:520px;justify-self:center;height:auto;overflow:visible}
+body[data-view=entry] .entry-portrait.hero-cover .portrait-art{max-height:min(70vh,640px)}
+body[data-view=home] .home .hero-figure.hero-cover{width:100%;height:auto;align-self:center}
+body[data-view=home] .home .hero-figure.hero-cover .portrait-art{width:min(100%,calc(68vh * var(--portrait-aspect,.55)));max-height:min(72vh,680px);min-width:280px}
+/* Softer adventure wash so BG_BRIDGE shows through */
+body:is([data-view=entry],[data-view=home])::before{background:linear-gradient(105deg,#061a23aa 0%,#071b2066 42%,#071b2033 70%,#071b2088 100%),var(--world-scene,url('../assets/v3/backgrounds/BG_BRIDGE.webp')) center/cover no-repeat}
+@media(max-width:760px){
+ body[data-view=entry] .entry-portrait.hero-cover{max-width:100%;height:auto}
+ body[data-view=entry] .entry-portrait.hero-cover .portrait-art,
+ body[data-view=home] .home .hero-figure.hero-cover .portrait-art{width:min(78vw,calc(42vh * var(--portrait-aspect,.55)));min-width:0;max-height:42vh}
+ body[data-view=home] .home .hero-figure.hero-cover{height:auto;min-height:220px}
+ body[data-view=home] .home .hero-figure.hero-cover figcaption small{display:block}
+ .hero-cover figcaption{font-size:18px}
+ .hero-cover figcaption small{font-size:12px}
+}
