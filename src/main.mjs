@@ -66,7 +66,7 @@ function updateHeader(){
 }
 let riftArena=null;
 function setView(id,html,{scene='BG_YARD'}={}){
- if(id!=='battle'){document.body.classList.remove('virt-on');document.body.classList.remove('drill-mode');virtShiftHeld=false;}
+ if(id!=='battle'){document.body.classList.remove('virt-on');document.body.classList.remove('drill-mode');document.body.classList.remove('drill-kb-qwerty');document.body.classList.remove('drill-kb-big');delete document.body.dataset.input;virtShiftHeld=false;}
  if(view!==id)worldMenu.open=false;
  if(pvp){pvp.destroy();pvp=null;}
  if(riftArena){riftArena.destroy();riftArena=null;}
@@ -275,6 +275,9 @@ function syncVirtBodyClass(){
   document.body.classList.toggle('virt-on',on);
   document.body.classList.toggle('drill-kb-qwerty', !!(node?.drill&&drillKbMode==='qwerty'));
   document.body.classList.toggle('drill-kb-big', !!(node?.drill&&drillKbMode!=='qwerty'));
+  // input profile for CSS: virt battle shell vs phys desktop shell
+  document.body.dataset.input=on?'virt':(view==='battle'?'phys':'');
+  if(!on&&view!=='battle')delete document.body.dataset.input;
   return on;
 }
 function setVirtKeyboard(on,{toastMsg=true}={}){
@@ -296,7 +299,8 @@ function refreshVirtBoard(){
     return;
   }
   if(!board){
-    const host=$('.story-playfield')||$('#battle-stage')||screen;
+    // dock outside playfield (sibling) so fixed-bottom touch shell works
+    const host=$('#battle-stage')||$('.view.battle')||screen;
     if(host){host.insertAdjacentHTML('beforeend', virtBoardHTML()+virtToggleHTML());board=$('#virt-board');}
   }
   if(!board)return;
@@ -344,7 +348,8 @@ function renderBattle(){
  const helpRow=node.drill
   ?`<div class="battle-help-row"><button class="text-link" data-action="help-key">睇鍵盤</button><button class="text-link" data-action="drill">換組</button></div>`
   :`<div class="battle-help-row"><button class="text-link" data-action="help-key">睇鍵盤</button><button class="text-link" data-action="demo">再睇示範</button></div>`;
- setView('battle',frame(`<div class="story-hud">${metrics(session,true)}${node.drill?`<div class="drill-progress" id="drill-progress">${session.correct}/${node.completion.target}</div>`:''}<button class="quiet" data-action="pause">${gameIcon('pause')}停</button></div><div class="story-playfield"><div class="target-area"><div class="target-label" id="target-label">${title}</div><div class="target-word" id="target-word" aria-label="而家要撳">${targetHTML()}</div><div class="finger" id="finger">${esc(fingerFor(targetOf(session).char))} · 慢慢嚟得</div></div><div class="story-actors"><div class="actor-wrap hero-actor"><div id="hero-motion" aria-label="${esc(o.name)}"></div></div><div class="actor-wrap enemy-actor"><div id="enemy-motion" aria-label="${esc(enemy.name)}"></div><span class="enemy-intent" aria-hidden="true"></span><span class="actor-caption">${esc(enemy.name)}</span></div></div><div class="story-message" id="story-message" role="status" aria-live="polite">${node.drill?'練習 · 睇清楚再撳。':'睇清楚，再撳。'}</div><div class="keyboard-hint" id="keyboard-hint" ${node.drill||node.chapterId==='C01'?'':'hidden'}>${keyboardHTML()}</div>${helpRow}<div class="no-keyboard">可以用鍵盤，或者下面大掣。</div>${virtBoardHTML()}${virtToggleHTML()}</div>`,'battle'+(node.drill?' drill-battle':''),`id="battle-stage" data-node-id="${node.id}" data-drill="${node.drill?'1':'0'}"`),{scene:node.backgroundId||'BG_YARD'});
+ // virt board OUTSIDE story-playfield so touch shell can dock kb at bottom without scroll-away
+  setView('battle',frame(`<div class="story-hud">${metrics(session,true)}${node.drill?`<div class="drill-progress" id="drill-progress">${session.correct}/${node.completion.target}</div>`:''}<button class="quiet" data-action="pause">${gameIcon('pause')}停</button></div><div class="story-playfield"><div class="target-area"><div class="target-label" id="target-label">${title}</div><div class="target-word" id="target-word" aria-label="而家要撳">${targetHTML()}</div><div class="finger" id="finger">${esc(fingerFor(targetOf(session).char))} · 慢慢嚟得</div></div><div class="story-actors"><div class="actor-wrap hero-actor"><div id="hero-motion" aria-label="${esc(o.name)}"></div></div><div class="actor-wrap enemy-actor"><div id="enemy-motion" aria-label="${esc(enemy.name)}"></div><span class="enemy-intent" aria-hidden="true"></span><span class="actor-caption">${esc(enemy.name)}</span></div></div><div class="story-message" id="story-message" role="status" aria-live="polite">${node.drill?'練習 · 睇清楚再撳。':'睇清楚，再撳。'}</div><div class="keyboard-hint" id="keyboard-hint" ${node.drill||node.chapterId==='C01'?'':'hidden'}>${keyboardHTML()}</div>${helpRow}<div class="no-keyboard">可以用鍵盤，或者下面大掣。</div></div>${virtBoardHTML()}${virtToggleHTML()}`,'battle'+(node.drill?' drill-battle':''),`id="battle-stage" data-node-id="${node.id}" data-drill="${node.drill?'1':'0'}"`),{scene:node.backgroundId||'BG_YARD'});
  if(node.drill)document.body.classList.add('drill-mode');
  const hero=new Sprite($('#hero-motion'),o.id,{reduced:reduced(),effectId:store.save.equippedEffectId,attackStyle:store.save.attackStyle,relicId:store.save.equippedTreasureId});const foe=new Sprite($('#enemy-motion'),node.enemyId,{enemy:true,reduced:reduced()});
  fx=new BattleEffects($('#battle-stage'),hero,foe,{reduced:reduced(),onCue:cue=>sound.play(cue, cue==='hurt'?.52:.48)});fx.setTarget(targetOf(session).kind);sound.bgm(node.drill||node.chapterId==='C07'?'battle':'main');

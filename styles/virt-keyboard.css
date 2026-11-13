@@ -102,19 +102,7 @@ body.virt-on .no-keyboard{display:none!important}
   50%{filter:brightness(1.12)}
 }
 
-/* battle layout when full QWERTY on */
-body.virt-on[data-view=battle] .battle .story-actors{
-  min-height:96px!important;
-  height:clamp(90px,14dvh,180px)!important;
-}
-body.virt-on[data-view=battle] .actor-wrap{
-  width:clamp(90px,14dvh,160px)!important;
-  height:clamp(90px,14dvh,160px)!important;
-}
-body.virt-on[data-view=battle] .battle .target-word{
-  font-size:clamp(28px,4vw,48px)!important;
-  min-height:40px!important;
-}
+/* Base virt battle (before desktop override kill) */
 body.virt-on[data-view=battle] .keyboard-hint{display:none!important}
 
 @media (max-width:700px){
@@ -122,159 +110,297 @@ body.virt-on[data-view=battle] .keyboard-hint{display:none!important}
   .virt-row{gap:3px}
   .virt-board{padding:8px 4px 10px;gap:4px}
 }
-@media (max-height:700px){
-  .virt-key{min-height:40px}
-  body.virt-on[data-view=battle] .battle .story-actors{height:80px!important;min-height:80px!important}
-}
 @media (min-width:900px){
   .virt-key{min-height:58px;max-width:88px;font-size:22px}
 }
 
-/* === IPAD LANDSCAPE VIRT FIX v=ipadkb1 === */
-/* Root cause: battle overflow:hidden + desktop 5-row grid clips QWERTY on short landscape. */
+/* ============================================================
+   TOUCH BATTLE SHELL v=touchshell1
+   Rule: body.virt-on[data-view=battle] = touch layout ALWAYS.
+   Kills desktop.css 5-row playfield / 100dvh-540 actor clamps.
+   One-screen: upper flex remainder + keyboard fixed bottom.
+   Scroll = overflow fallback only.
+   ============================================================ */
 
-/* Allow vertical scroll so full keyboard is reachable */
+/* Shell chrome: short header, hide footer during virt battle */
+body.virt-on[data-view=battle] #app-shell{
+  display:grid!important;
+  grid-template-rows:48px minmax(0,1fr)!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  height:100dvh!important;
+  max-height:100dvh!important;
+  min-height:0!important;
+  gap:4px!important;
+  padding-bottom:calc(6px + env(safe-area-inset-bottom,0px))!important;
+  overflow:hidden!important;
+}
+body.virt-on[data-view=battle] .world-header{
+  height:48px!important;
+  min-height:48px!important;
+  max-height:48px!important;
+}
+body.virt-on[data-view=battle] .world-footer,
+body.virt-on[data-view=battle] #game-dock{
+  display:none!important;
+}
+
+/* Screen = column: playfield grows, keyboard docks bottom */
 body.virt-on[data-view=battle] #screen{
-  overflow-y:auto!important;
-  overflow-x:hidden!important;
-  -webkit-overflow-scrolling:touch;
-  overscroll-behavior:contain;
+  display:flex!important;
+  flex-direction:column!important;
   justify-content:flex-start!important;
+  align-items:stretch!important;
+  min-height:0!important;
+  height:100%!important;
+  max-height:100%!important;
+  overflow:hidden!important;
+  padding:0!important;
+  -webkit-overflow-scrolling:touch;
 }
 body.virt-on[data-view=battle] #screen>.frame,
 body.virt-on[data-view=battle] #screen .view.battle,
 body.virt-on[data-view=battle] #battle-stage{
-  overflow:visible!important;
-  height:auto!important;
+  display:flex!important;
+  flex-direction:column!important;
+  flex:1 1 auto!important;
   min-height:0!important;
+  height:auto!important;
   max-height:none!important;
+  overflow:hidden!important;
 }
 body.virt-on[data-view=battle] .battle{
-  overflow:visible!important;
-  height:auto!important;
+  display:flex!important;
+  flex-direction:column!important;
+  flex:1 1 auto!important;
+  gap:6px!important;
+  padding:6px clamp(8px,2vw,24px) 0!important;
   min-height:0!important;
+  height:100%!important;
   max-height:none!important;
-  padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;
+  overflow:hidden!important;
+  grid-template-rows:none!important;
 }
 
-/* Rebuild playfield so keyboard is a real last row (not clipped by 5-row desktop grid) */
+/* Kill desktop story-playfield 5-row grid + contents trick */
 body.virt-on[data-view=battle] .battle .story-playfield{
   display:flex!important;
   flex-direction:column!important;
+  flex:1 1 auto!important;
   gap:6px!important;
   width:100%!important;
   min-height:0!important;
   margin:0!important;
+  overflow:hidden!important;
   grid-template-rows:none!important;
-}
-body.virt-on[data-view=battle] .battle .target-area{flex:0 0 auto}
-body.virt-on[data-view=battle] .battle .story-actors{
-  flex:0 0 auto!important;
-  height:clamp(64px,12dvh,120px)!important;
-  min-height:64px!important;
-  max-height:120px!important;
-}
-body.virt-on[data-view=battle] .actor-wrap{
-  width:clamp(64px,12dvh,110px)!important;
-  height:clamp(64px,12dvh,110px)!important;
-}
-body.virt-on[data-view=battle] .battle .story-message,
-body.virt-on[data-view=battle] .battle .keyboard-hint,
-body.virt-on[data-view=battle] .battle .no-keyboard{
-  display:none!important;
-}
-body.virt-on[data-view=battle] .battle .finger{
-  display:none!important;
-}
-body.virt-on[data-view=battle] .battle .target-word{
-  font-size:clamp(26px,5.2vw,44px)!important;
-  min-height:36px!important;
-  margin:4px auto!important;
-}
-body.virt-on[data-view=battle] .battle .story-hud{
-  flex-shrink:0;
-  min-height:0;
-  height:auto!important;
-  padding:8px 12px!important;
+  grid-template-columns:none!important;
 }
 
-/* Keyboard stays reachable: sticky bottom while scrolling */
-body.virt-on[data-view=battle] .virt-board{
-  position:sticky;
-  bottom:0;
-  z-index:30;
-  margin-top:4px!important;
-  margin-bottom:0!important;
+/* Upper stack scrolls ONLY if content > leftover height */
+body.virt-on[data-view=battle] .battle .story-hud{
+  flex:0 0 auto!important;
+  height:auto!important;
+  min-height:0!important;
+  padding:6px 10px!important;
+}
+body.virt-on[data-view=battle] .story-hud .metric b{
+  font-size:clamp(18px,3.2vw,28px)!important;
+}
+body.virt-on[data-view=battle] .battle .target-area{
+  flex:0 0 auto!important;
+  margin:0!important;
+  align-self:center;
+}
+body.virt-on[data-view=battle] .battle .target-word{
+  font-size:clamp(34px,6vw,56px)!important;
+  min-height:44px!important;
+  margin:4px auto!important;
+  line-height:1.15!important;
+}
+body.virt-on[data-view=battle] .battle .target-label{
+  font-size:13px!important;
+}
+body.virt-on[data-view=battle] .battle .finger,
+body.virt-on[data-view=battle] .battle .story-message,
+body.virt-on[data-view=battle] .battle .keyboard-hint,
+body.virt-on[data-view=battle] .battle .no-keyboard,
+body.virt-on[data-view=battle] .battle-help-row{
+  display:none!important;
+}
+
+/* Actors: SEN-visible floor — NOT 56px crumbs */
+body.virt-on[data-view=battle] .battle .story-actors{
+  display:flex!important;
+  flex:1 1 auto!important;
+  align-items:flex-end!important;
+  justify-content:center!important;
+  gap:clamp(24px,6vw,64px)!important;
+  height:auto!important;
+  min-height:110px!important;
+  max-height:none!important;
+  padding:0 4%!important;
+  margin:0 auto!important;
+  width:100%!important;
+  max-width:1100px!important;
+  overflow:hidden!important;
+}
+body.virt-on[data-view=battle] .actor-wrap{
+  width:clamp(110px,18dvh,180px)!important;
+  height:clamp(110px,18dvh,180px)!important;
+  max-height:100%!important;
+  flex-shrink:1!important;
+  aspect-ratio:1!important;
+}
+body.virt-on[data-view=battle] .actor-caption,
+body.virt-on[data-view=battle] .enemy-intent{
+  font-size:11px!important;
+}
+
+/* Keyboard dock: always visible at bottom of battle column */
+body.virt-on[data-view=battle] .virt-toggle-row{
   flex:0 0 auto;
+  margin:2px 0 4px;
+  order:100;
+}
+body.virt-on[data-view=battle] .virt-board{
+  position:relative;
+  flex:0 0 auto!important;
+  order:99;
+  z-index:30;
   width:min(1100px,100%)!important;
-  max-height:none;
-  overflow:visible;
-  padding:8px 6px 10px!important;
-  gap:4px!important;
+  max-width:100%!important;
+  margin:4px auto 0!important;
+  padding:8px 6px calc(8px + env(safe-area-inset-bottom,0px))!important;
+  gap:5px!important;
   background:#0b2624fa;
   box-shadow:0 -10px 28px #00000088,0 8px 28px #00000055;
+  border-radius:14px 14px 10px 10px;
 }
 body.virt-on[data-view=battle] .virt-board .virt-hint{
   font-size:12px;
   margin:0 0 2px;
 }
-body.virt-on[data-view=battle] .virt-toggle-row{
-  position:sticky;
-  bottom:0;
-  z-index:31;
-  margin:2px 0 4px;
-  background:transparent;
+
+/* Comfortable key size on tablet / desktop-with-virt */
+body.virt-on[data-view=battle] .virt-key{
+  min-height:48px!important;
+  max-width:86px;
+  font-size:clamp(15px,2.2vw,22px)!important;
+  padding:5px 2px!important;
+  border-radius:10px;
+}
+body.virt-on[data-view=battle] .virt-key.is-space{min-height:46px!important}
+body.virt-on[data-view=battle] .virt-row{gap:5px}
+body.virt-on[data-view=battle] .virt-key.drill-big{
+  min-width:min(20vw,96px)!important;
+  min-height:64px!important;
+  font-size:clamp(1.35rem,4.2vw,2rem)!important;
 }
 
-/* Short landscape (iPad landscape ~768–900 tall): compact keys */
+/* Landscape tablet: denser but still SEN-readable (NOT crumb mode) */
 @media (orientation:landscape) and (max-height:900px){
-  body.virt-on[data-view=battle] .world-header{height:48px!important;min-height:48px!important}
   body.virt-on[data-view=battle] .world-header .brand-button span,
   body.virt-on[data-view=battle] .world-header #save-status,
-  body.virt-on[data-view=battle] .world-header .player-badge{display:none!important}
-  body.virt-on[data-view=battle] .world-footer{display:none!important}
-  body.virt-on[data-view=battle] #app-shell{padding-left:10px!important;padding-right:10px!important;min-height:100dvh}
-  body.virt-on[data-view=battle] .virt-key{
-    min-height:36px!important;
-    max-width:72px;
-    padding:3px 1px!important;
-    font-size:clamp(12px,1.8vw,18px)!important;
-    border-radius:8px;
-    box-shadow:0 2px 0 #071614;
+  body.virt-on[data-view=battle] .world-header .player-badge{
+    display:none!important;
   }
-  body.virt-on[data-view=battle] .virt-key.is-space{min-height:34px!important}
-  body.virt-on[data-view=battle] .virt-row{gap:3px}
-  body.virt-on[data-view=battle] .virt-board{padding:6px 4px 8px!important;gap:3px!important;border-radius:12px}
-  body.virt-on[data-view=battle] .virt-board .virt-hint{display:none}
-  body.virt-on[data-view=battle] .battle-help-row{display:none!important}
+  body.virt-on[data-view=battle] #app-shell{
+    padding-left:10px!important;
+    padding-right:10px!important;
+  }
+  body.virt-on[data-view=battle] .battle{gap:4px!important;padding-top:4px!important}
+  body.virt-on[data-view=battle] .battle .story-hud{padding:4px 8px!important}
+  body.virt-on[data-view=battle] .story-hud .metric b{font-size:20px!important}
+  body.virt-on[data-view=battle] .battle .target-word{
+    font-size:clamp(32px,5vw,48px)!important;
+    min-height:40px!important;
+    margin:2px auto!important;
+  }
+  body.virt-on[data-view=battle] .battle .target-label{display:none!important}
   body.virt-on[data-view=battle] .battle .story-actors{
-    height:56px!important;min-height:56px!important;max-height:56px!important;
+    min-height:120px!important;
+    gap:clamp(20px,5vw,48px)!important;
   }
   body.virt-on[data-view=battle] .actor-wrap{
-    width:56px!important;height:56px!important;
+    width:clamp(120px,20dvh,160px)!important;
+    height:clamp(120px,20dvh,160px)!important;
+  }
+  body.virt-on[data-view=battle] .virt-key{
+    min-height:44px!important;
+    max-width:78px;
+    font-size:clamp(14px,1.9vw,20px)!important;
+    padding:4px 1px!important;
+  }
+  body.virt-on[data-view=battle] .virt-key.is-space{min-height:42px!important}
+  body.virt-on[data-view=battle] .virt-row{gap:4px}
+  body.virt-on[data-view=battle] .virt-board{
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px))!important;
+    gap:4px!important;
+  }
+  body.virt-on[data-view=battle] .virt-board .virt-hint{display:none}
+  body.virt-on[data-view=battle] .drill-kb-row{margin:2px 0!important}
+  body.virt-on[data-view=battle] .virt-key.drill-big{
+    min-width:min(18vw,88px)!important;
+    min-height:56px!important;
+    font-size:clamp(1.2rem,3.8vw,1.75rem)!important;
+  }
+}
+
+/* Very short landscape (split / mini): keep keys usable; actors shrink not vanish until extreme */
+@media (orientation:landscape) and (max-height:700px){
+  body.virt-on[data-view=battle] .world-header{height:40px!important;min-height:40px!important;max-height:40px!important}
+  body.virt-on[data-view=battle] #app-shell{grid-template-rows:40px minmax(0,1fr)!important}
+  body.virt-on[data-view=battle] .battle .story-hud{padding:2px 6px!important}
+  body.virt-on[data-view=battle] .story-hud .metric b{font-size:16px!important}
+  body.virt-on[data-view=battle] .battle .target-word{
+    font-size:clamp(28px,4.5vw,40px)!important;
+    min-height:34px!important;
+  }
+  body.virt-on[data-view=battle] .battle .story-actors{min-height:96px!important}
+  body.virt-on[data-view=battle] .actor-wrap{
+    width:clamp(96px,16dvh,130px)!important;
+    height:clamp(96px,16dvh,130px)!important;
   }
   body.virt-on[data-view=battle] .actor-caption,
   body.virt-on[data-view=battle] .enemy-intent{display:none!important}
-  body.virt-on[data-view=battle] .drill-kb-row{margin:2px 0!important}
+  body.virt-on[data-view=battle] .virt-key{
+    min-height:40px!important;
+    font-size:clamp(13px,1.7vw,17px)!important;
+  }
+  body.virt-on[data-view=battle] .virt-key.is-space{min-height:38px!important}
   body.virt-on[data-view=battle] .virt-key.drill-big{
-    min-width:min(18vw,70px)!important;
     min-height:48px!important;
-    font-size:clamp(1.1rem,3.5vw,1.6rem)!important;
+    font-size:clamp(1.1rem,3.2vw,1.5rem)!important;
   }
 }
 
-/* Very short landscape (iPad mini / split) */
-@media (orientation:landscape) and (max-height:700px){
-  body.virt-on[data-view=battle] .virt-key{min-height:32px!important;font-size:12px!important}
+/* Extreme short: hide actors only as last resort — keys stay ≥36px */
+@media (orientation:landscape) and (max-height:560px){
   body.virt-on[data-view=battle] .battle .story-actors{display:none!important}
-  body.virt-on[data-view=battle] .battle .target-label{display:none!important}
-  body.virt-on[data-view=battle] .battle .story-hud{padding:4px 8px!important}
-  body.virt-on[data-view=battle] .story-hud .metric b{font-size:18px!important}
+  body.virt-on[data-view=battle] .virt-key{min-height:36px!important}
+  body.virt-on[data-view=battle] .virt-key.is-space{min-height:34px!important}
 }
 
-/* Portrait tablets: still allow scroll if needed */
+/* Portrait tablet: same shell, slightly taller actors */
 @media (orientation:portrait) and (max-width:1180px){
-  body.virt-on[data-view=battle] #screen{overflow-y:auto!important;-webkit-overflow-scrolling:touch}
-  body.virt-on[data-view=battle] .battle{overflow:visible!important}
-  body.virt-on[data-view=battle] .virt-board{position:sticky;bottom:0;z-index:30}
+  body.virt-on[data-view=battle] .battle .story-actors{min-height:140px!important}
+  body.virt-on[data-view=battle] .actor-wrap{
+    width:clamp(130px,22dvh,200px)!important;
+    height:clamp(130px,22dvh,200px)!important;
+  }
+  body.virt-on[data-view=battle] .virt-key{min-height:52px!important}
+  body.virt-on[data-view=battle] .virt-key.drill-big{
+    min-width:min(24vw,100px)!important;
+    min-height:72px!important;
+  }
+}
+
+/* Overflow fallback: if somehow still clipped, allow upper scroll without losing docked kb.
+   Keyboard stays flex-end of column so it remains in view; only playfield upper scrolls. */
+@supports (height:100dvh){
+  body.virt-on[data-view=battle] .battle .story-playfield{
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+  }
 }
