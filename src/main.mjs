@@ -15,15 +15,15 @@ import {BPMF_KEYS,BPMF_BY_KEY,physicalKey,routeKey,routeLabel} from './keyboard.
 import {NODES as EN_NODES,CHAPTERS as EN_CHAPTERS,NODE_BY_ID as EN_NODE_BY_ID,OUTFITS,ENEMIES,VERSION,blankSave,cleanName,accuracy,nextNode as englishNextNode,canStartNode,bossUnlocked,availableOutfits,availableEffects,availableAttacks,makeSession,targetOf,physicalCode,sessionResult,completeNode,fingerFor,keyLabel,normalizeSave,mergeSaves,unlockDifferences,uid,resultStars,nodeStars,chapterStars,totalStars} from './core.mjs?v=values1';
 import {CHAPTER_COPY as EN_CHAPTER_COPY,openingFor as englishOpeningFor,closingFor as englishClosingFor,SPEAKERS,SCENES,missionFor as englishMissionFor} from './content.mjs?v=values1';
 import {CHALLENGE_STAGES,CHALLENGE_ENEMIES,CHALLENGE_ENEMY_IDS} from '../game-data/challenge-enemies.mjs';
-import {SaveStore} from './storage.mjs';
-import {initMedia,media,portraitHTML,Sprite,BattleEffects,Sound,watchArt,outfitThumbnail} from './media.mjs?v=brand1';
+import {initMedia,media,portraitHTML,Sprite,BattleEffects,Sound,watchArt,outfitThumbnail} from './media.mjs?v=sys1';
 import {writeVirtKeyboardOn,migrateLegacyInputMode,syntheticKeyEvent} from './input-mode.mjs';
 import {DRILL_GROUPS,DRILL_GOAL,makeDrillNode,drillGroup} from './drill.mjs';
 import {
   grantPracticeStars, virtBoardHTML, virtToggleHTML, boardKind, syncVirtHighlights,
   keyboardHTML as battleKeyboardHTML, targetHTML as battleTargetHTML, battleShellHTML,
   runBattleKey, battleHudPatch, applyBattleHudPatch,
-} from './battle-ui.mjs?v=arch1';
+} from './battle-ui.mjs?v=sys1';
+import {SaveStore} from './storage.mjs?v=sys1';
 const $=s=>document.querySelector(s),screen=$('#screen'),modal=$('#modal'),worldMenu=$('#world-menu');
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const GAME_NAME='電腦打字大冒險';
@@ -85,12 +85,29 @@ function setView(id,html,{scene='BG_YARD'}={}){
 function frame(content,classes='',attrs=''){return `<section class="frame"><div class="view active ${classes}" ${attrs}>${content}</div></section>`;}
 function metrics(result,ids=false){const acc=accuracy(result);return `<div class="metrics" aria-label="今次"><div class="metric"><span class="metric-label">${gameIcon('target')}啱幾多</span><b ${ids?'id="stat-acc"':''}>${acc===null?'—':acc+'%'}</b></div><div class="metric"><span class="metric-label">${gameIcon('combo')}連中</span><b ${ids?'id="stat-combo"':''}>${result.combo??result.maxCombo??0}</b></div><div class="metric"><span class="metric-label">${gameIcon('score')}分數</span><b ${ids?'id="stat-score"':''}>${result.score??0}</b></div></div>`;}
 function updateEntryLogin(){/* local-only fork: no cloud login */}
+function profileListHTML(compact=false){
+  const list=store.listProfiles?.()||[];
+  if(!list.length)return '';
+  const active=store.profileId;
+  const cards=list.map(p=>`<button type="button" class="profile-chip ${p.id===active?'is-active':''}" data-action="select-profile" data-id="${p.id}" aria-pressed="${p.id===active}"><b>${esc(p.name||'同學')}</b><small>${p.completed||0} 關</small></button>`).join('');
+  return `<div class="profile-rail" role="group" aria-label="本機同學進度">${cards}${compact?'':`<button type="button" class="profile-chip profile-new" data-action="new-profile">＋ 新同學</button>`}</div>`;
+}
 function renderEntry(){
- // 封面：主角 O00（唔用老師）· 冒險大景
+ // 封面：主角 O00 · 多 profile 本機（課室共用機）
  const cover=OUTFITS.find(o=>o.id==='O00')??OUTFITS[0];
- sound.bgm('title');setView('entry',frame(`<div class="entry-copy"><div class="chapter">將軍澳培智學校 · 英文</div><h1>一齊學打字啦。</h1><p>由 F、J 開始。<br>直接撳鍵，唔使轉輸入法。進度自動儲存，唔使登入。</p><form id="name-form"><label for="player-name">名（可以唔填）</label><input id="player-name" name="name" maxlength="40" autocomplete="off" placeholder="同學" value="${esc(entryNameDraft)}">${secondary('submit-name','開始','type="submit"')}</form>${store.guestAvailable?.completedNodeIds.length?'<button class="text-link" data-action="resume-guest">繼續呢部機嘅進度</button>':''}</div><figure class="entry-portrait hero-cover"><div class="hero-cover-stage">${portraitHTML(cover.id,'calm')}</div><figcaption>${esc(cover.name)}<small>你就係打字俠</small></figcaption></figure>`,'entry'),{scene:'BG_BRIDGE'});
+ const profiles=store.listProfiles?.()||[];
+ const hasProgress=profiles.some(p=>(p.completed||0)>0)||!!store.save?.completedNodeIds?.length;
+ sound.bgm('title');setView('entry',frame(`<div class="entry-copy"><div class="chapter">將軍澳培智學校 · 英文</div><h1>一齊學打字啦。</h1><p>由 F、J 開始。<br>進度<strong>本機自動存</strong>；一部機可以有多個同學。</p>${profileListHTML()}<form id="name-form"><label for="player-name">名（可以唔填）</label><input id="player-name" name="name" maxlength="40" autocomplete="off" placeholder="同學" value="${esc(entryNameDraft||store.save.displayName||'')}">${secondary('submit-name',hasProgress?'用呢個名開始':'開始','type="submit"')}</form>${hasProgress?`<button class="text-link" data-action="resume-guest">繼續而家呢位：${esc(store.save.displayName||store.activeProfile?.()?.name||'同學')}</button>`:''}</div><figure class="entry-portrait hero-cover"><div class="hero-cover-stage">${portraitHTML(cover.id,'calm')}</div><figcaption>${esc(cover.name)}<small>你就係打字俠</small></figcaption></figure>`,'entry'),{scene:'BG_BRIDGE'});
  syncVoiceChrome();
- $('#name-form').addEventListener('submit',event=>{event.preventDefault();if(event.currentTarget.querySelector('button').disabled)return;const name=cleanName($('#player-name').value)||'同學';const enter=fresh=>{store.update({...fresh?blankSave(name):store.save,displayName:name},{nameDirty:true});entryNameDraft='';renderHome();};if(store.guestAvailable?.completedNodeIds.length){showModal('繼續之前嘅進度？','<p>呢部瀏覽器有進度。係你嘅就繼續；唔係就由頭嚟。</p>',[{label:'由頭嚟',fn:()=>enter(true)},{label:'繼續',primary:true,fn:()=>enter(false)}]);}else enter(false);});
+ $('#name-form').addEventListener('submit',event=>{event.preventDefault();if(event.currentTarget.querySelector('button').disabled)return;const name=cleanName($('#player-name').value)||'同學';
+  const enter=async(fresh)=>{
+    if(fresh){await store.createProfile(name);}
+    else store.update({...store.save,displayName:name},{nameDirty:true});
+    entryNameDraft='';renderHome();
+  };
+  if(store.save?.completedNodeIds?.length){showModal('繼續之前嘅進度？','<p>而家呢位已有進度。係你就繼續；唔係就開<strong>新同學</strong>。</p>',[{label:'新同學',fn:()=>enter(true)},{label:'繼續',primary:true,fn:()=>enter(false)}]);}
+  else enter(false);
+ });
 }
 function renderHome(){
  sound.bgm('main');const next=nextNode(store.save),o=outfit();const cp=next?CHAPTER_COPY[next.chapterId]:CHAPTER_COPY.C07;
@@ -435,8 +452,10 @@ function updateSyncButton(){
  if(busy||seconds)syncButtonTimer=setTimeout(updateSyncButton,250);
 }
 function renderAccount(){
- setView('account',frame(`<div class="chapter">本機存檔</div><h1 class="section-title">進度已自動保存</h1><p>章節、服裝與最佳成績都保存在這台瀏覽器。<br>可匯出 JSON 備份，換電腦時再匯入。</p><div class="storage-status" id="account-status">${gameIcon('local')}<span>訪客紀錄只留在這台瀏覽器</span></div><div class="account-actions">${secondary('export-save','匯出')}${secondary('import-save','匯入')}${secondary('home','繼續旅程')}</div><p class="notice">此版本無需 Google 登入。<br>教學改寫：${GAME_NAME}（英文）</p><input type="file" id="import-file" accept="application/json,.json" hidden>`,'account'));
- $('#import-file').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;if(file.size>65536){toast('紀錄檔太大，請選擇遊戲匯出的檔案。');return;}try{const value=JSON.parse(await file.text());if(value.route&&routeKey(value.route)!=='en')throw Error('只支援英文路線紀錄。');const imported=normalizeSave(value.save);showModal('帶入自己的旅程',`<p>這份紀錄完成了 ${imported.completedNodeIds.length} 個小節。確定是你的紀錄，再帶入目前旅程。</p>`,[{label:'取消'},{label:'帶入紀錄',primary:true,fn:()=>{store.importFile(value);renderAccount();toast('紀錄已帶入。');}}]);}catch(error){toast(error.message||'這份紀錄無法讀取。');}});
+ const p=store.activeProfile?.()||{name:store.save.displayName||'同學'};
+ const list=store.listProfiles?.()||[];
+ setView('account',frame(`<div class="chapter">本機存檔 · 多同學</div><h1 class="section-title">進度已自動保存</h1><p>一部 iPad／電腦可以有多個同學進度（課室共用）。<br>而家：<b>${esc(p.name||'同學')}</b></p>${profileListHTML()}<div class="storage-status" id="account-status">${gameIcon('local')}<span>本機 · ${list.length} 位同學 · 唔使登入</span></div><div class="account-actions">${secondary('export-save','匯出')}${secondary('import-save','匯入')}${secondary('new-profile','新同學')}${list.length>1?secondary('delete-profile','刪而家呢位',`data-id="${store.profileId}"`):''}${secondary('home','繼續旅程')}</div><p class="notice">此版本無需 Google 登入。<br>系統：local-first multi-profile · ${GAME_NAME}</p><input type="file" id="import-file" accept="application/json,.json" hidden>`,'account'));
+ $('#import-file').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;if(file.size>65536){toast('紀錄檔太大，請選擇遊戲匯出的檔案。');return;}try{const value=JSON.parse(await file.text());const imported=normalizeSave(value.save);showModal('帶入自己的旅程',`<p>這份紀錄完成了 ${imported.completedNodeIds.length} 個小節。確定是你的紀錄，再帶入目前同學。</p>`,[{label:'取消'},{label:'帶入紀錄',primary:true,fn:()=>{store.importFile(value);renderAccount();toast('紀錄已帶入。');}}]);}catch(error){toast(error.message||'這份紀錄無法讀取。');}});
 }
 function offerImport(){
  const current=store,candidate=current.importCandidate;
@@ -468,7 +487,7 @@ function showModal(title,html,actions){
  modal.innerHTML=`<div class="modal-heading">${gameIcon(modalTitleIcon(title))}<h2 id="modal-title">${esc(title)}</h2><button class="modal-close quiet" type="button" data-modal-close aria-label="關閉視窗" title="關閉（Esc）">${gameIcon('close')}</button></div>${html}<div class="modal-actions">${actions.map((a,i)=>`<button class="${a.primary?'primary':'secondary'}" data-modal-index="${i}">${gameIcon(modalActionIcon(a.label,a.primary))}${esc(a.label)}</button>`).join('')}</div>`;
  modal.querySelector('[data-modal-close]').addEventListener('click',()=>{if(modal.dispatchEvent(new Event('cancel',{cancelable:true})))modal.close();});
  decorateActions(modal);
- modal.querySelectorAll('[data-modal-index]').forEach(b=>b.addEventListener('click',()=>{const action=actions[Number(b.dataset.modalIndex)];pendingModalClose=null;modal.close();action.fn?.();}));
+ modal.querySelectorAll('[data-modal-index]').forEach(b=>b.addEventListener('click',()=>{const action=actions[Number(b.dataset.modalIndex)];pendingModalClose=null;action.fn?.();modal.close();}));
  modal.showModal();
 }
 function pauseBattle(){
@@ -485,7 +504,19 @@ function leaveLegacy(){legacyFrame?.contentWindow?.postMessage({type:'wuxia:paus
 const actions={
  trials:renderTrials,rift:()=>renderRift(),'rift-preview':previewRiftEnemy,'start-rift':startRiftBattle,'rift-forge':()=>{wardrobeTab='forge';renderWardrobe();},'forge-item':forgeItem,pvp:()=>renderPvp(),fullscreen:toggleFullscreen,home:safeRouteHome,drill:()=>renderDrillPick(),'start-drill':b=>{drillGroupId=b.dataset.id||drillGroupId;startDrill(drillGroupId);},'restart-drill':()=>restartDrill(),continue:()=>{const next=nextNode(store.save);next?startLesson(next.id):renderBoss();},journey:()=>renderJourney(),chapter:b=>{renderJourney(b.dataset.id);$(`[data-action=chapter][data-id="${chapterId}"]`)?.focus({preventScroll:true});},'select-mission':b=>{renderJourney(chapterId,b.dataset.id);if(matchMedia('(max-width:700px)').matches){$('.mission-detail').focus({preventScroll:true});$('.mission-detail').scrollIntoView({behavior:reduced()?'instant':'smooth',block:'start'});}},'mission-results':b=>renderJourney(NODE_BY_ID[b.dataset.id].chapterId,b.dataset.id),'star-guide':()=>showModal('每個任務，都能收集三 ','<p>★ 完成任務。<br>★★ 完成任務，啱幾多達 80%。<br>★★★ 啱幾多達 95%，且未使用額外鍵位提示。</p><p class="small">老師示範唔影響星。唔使趕。一粒星就可以去下一關；再玩只留最好星數，唔重複累加。</p>',[{label:'知道了',primary:true}]),lesson:b=>startLesson(b.dataset.id),'restart-lesson':b=>restartLesson(b.dataset.id),'next-lesson':b=>startLesson(b.dataset.id),'stop-auto':stopAutoAdvance,'outfit-filter':b=>{outfitFilter=b.dataset.id;renderWardrobe(filteredOutfits().some(o=>o.id===selectedOutfit)?selectedOutfit:filteredOutfits()[0].id);},'preview-outfit':b=>{const sprite=sceneSprites[0];if(!sprite)return;sprite.finisher=false;sprite.act(b.dataset.motion,800);if(['run','jump'].includes(b.dataset.motion))sprite.previewFx.clear();else sprite.previewFx.preview(sprite,b.dataset.motion,store.save.attackStyle);if(['attack','cast','seal'].includes(b.dataset.motion))launchProjectile($('.outfit-cast-stage'),$('#outfit-motion'),null,b.dataset.motion==='cast'?'spell':b.dataset.motion==='seal'?'talisman':store.save.attackStyle,reduced());sound.play(['run','jump'].includes(b.dataset.motion)?'click':b.dataset.motion==='defense'?'guard':b.dataset.motion==='attack'&&store.save.attackStyle==='sword'?'attack':'magic',.45);},'wear-and-next':b=>{if(!availableOutfits(store.save).some(o=>o.id===b.dataset.id))return;store.update({...markOutfitSeen(store.save,b.dataset.id),equippedOutfitId:b.dataset.id},{outfitDirty:true});sound.play('equip',.5);b.dataset.next?startLesson(b.dataset.next):renderWardrobe(b.dataset.id);},
  guest:()=>{if(store.guestAvailable?.completedNodeIds.length)showModal('接續訪客旅程嗎？','<p>這台裝置已有訪客進度。共用電腦時，確認是自己的紀錄再接續。</p>',[{label:'由頭嚟',fn:()=>{store.update(blankSave('同學'));renderHome();}},{label:'接續旅程',primary:true,fn:()=>{store.save=store.guestAvailable;renderHome();}}]);else{store.update(blankSave('同學'));renderHome();}},
- 'resume-guest':()=>{store.save=store.guestAvailable??blankSave('同學');renderHome();},
+ 'resume-guest':()=>{renderHome();},
+ 'select-profile':async b=>{try{await store.selectProfile(b.dataset.id);toast('已切換：'+(store.save.displayName||'同學'));if(view==='entry')renderEntry();else if(view==='account')renderAccount();else renderHome();}catch(e){toast(e.message||'切換失敗');}},
+ 'new-profile':async()=>{
+  showModal('開新同學','<p>輸入名（可以唔填）。會開一個全新進度。</p><label for="new-profile-name">名</label><input id="new-profile-name" maxlength="20" autocomplete="off" placeholder="同學" style="width:100%;margin-top:8px;padding:10px;font-size:18px">',[{label:'取消'},{label:'開新進度',primary:true,fn:async()=>{
+    const name=cleanName(document.getElementById('new-profile-name')?.value||'')||'同學';
+    try{await store.createProfile(name);toast('已開新同學：'+name);if(view==='entry')renderEntry();else if(view==='account')renderAccount();else renderHome();}catch(e){toast(e.message||'開唔到');}
+  }}]);
+  setTimeout(()=>document.getElementById('new-profile-name')?.focus(),50);
+ },
+ 'delete-profile':async b=>{
+  const id=b.dataset.id||store.profileId;
+  showModal('刪除呢位進度？','<p>刪咗唔返。其他同學唔受影響。</p>',[{label:'取消',primary:true},{label:'刪除',fn:async()=>{try{await store.deleteProfile(id);toast('已刪');renderAccount();}catch(e){toast(e.message||'刪唔到');}}}]);
+ },
  'retry-challenge-rewards':async b=>{const current=store;b.disabled=true;try{for(const run of current.rewardQueue.filter(run=>run.kind==='challenge'))await current.claimReward(run);if(current===store&&view==='briefing'){renderChallengeBrief(selectedChallenge);toast('挑戰獎勵已保存。');}}catch(error){b.disabled=false;toast(error.message);}},
  'retry-rewards':async()=>{const current=store;try{for(const run of current.rewardQueue.filter(run=>run.kind!=='challenge'))await current.claimReward(run);if(current===store){renderBoss();toast('靈石獎勵已保存。');}}catch(error){toast(error.message);}},'collection-tab':b=>{const id=b.dataset.id;wardrobeTab=id==='treasures'?'treasures':'outfits';renderWardrobe();},'equip-treasure':b=>{if(!availableTreasures(store.save).some(t=>t.id===b.dataset.id))return;store.update({...store.save,equippedTreasureId:b.dataset.id},{loadoutDirty:true});sound.play('equip',.45);renderWardrobe();toast(b.dataset.id==='none'?'品格寶物已收起。':'已帶 '+treasureFor(b.dataset.id).name+'，可同衫特效一齊用。');},'equip-effect':b=>equipLoadout('effect',b.dataset.id),'equip-attack':b=>equipLoadout('attack',b.dataset.id),'draw-item':drawCollection,'endless-ranking':renderEndlessRanking,'publish-rank':publishEndless,'unpublish-rank':async()=>{try{await store.unpublishRanking();toast('已取消公開');renderEndlessRanking();}catch{toast('取消公開暫時失敗，請重試。');}},'dialogue-choice':b=>{if(!dialogue)return;if(b.dataset.id==='ask'){dialogue.lines[dialogue.index]={speaker:'MASTER',expression:'encouraging',text:approachFor(node).hint+' 這次的任務是「'+missionFor(node).title+'」。'+(typingMode==='zh-bpmf'?'照亮起的注音鍵依序按，不用選字。':'看準亮起的鍵位再按；F、J 的小凸點能幫你找到雙手的位置。')+'不必搶快，慢慢嚟。'};showDialogueLine();}else{const done=dialogue.onDone;dialogue=null;done({demo:false});}},'next-line':()=>nextLine(),'skip-lines':()=>nextLine(true),'leave-lesson':leaveLesson,pause:pauseBattle,demo:showDemo,
  'help-key':()=>{session.assisted=true;$('#keyboard-hint').hidden=false;$('#story-message').textContent='睇亮起嘅鍵，啱就撳。';},

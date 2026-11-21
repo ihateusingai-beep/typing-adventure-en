@@ -1,10 +1,12 @@
 import {forgeAction} from './forge.mjs';
 import {routeKey,routeLabel} from './keyboard.mjs';
 import {claimRun,claimRift,claimChallengeRun,drawItem,drawLimitedItem,secureRoll,endlessGrade} from './collection.mjs';
-import {blankSave,normalizeSave,mergeSaves,importLegacy,unlockDifferences,grantOutfits,unlockStory,availableOutfits,OUTFITS} from './core.mjs';
+import {blankSave,normalizeSave,mergeSaves,importLegacy,unlockDifferences,grantOutfits,unlockStory,availableOutfits,OUTFITS,cleanName} from './core.mjs';
+import {LocalRepository} from './system/repository.mjs';
+import {wrapExport,parseImport,LEGACY_GUEST_KEY} from './system/schema.mjs';
 
-/** Local-only fork: no Google / Firebase. */
-export const GUEST_KEY='typing_adventure_en_guest_v1';
+/** Local-first multi-profile store. No Google / Firebase. */
+export const GUEST_KEY=LEGACY_GUEST_KEY;
 
 export class SaveStore extends EventTarget{
  constructor(route='en'){
@@ -12,6 +14,7 @@ export class SaveStore extends EventTarget{
   this.route=routeKey(route);
   this.gameId='typing_adventure_en_v1';
   this.guestKey=GUEST_KEY;
+  this.repo=new LocalRepository();
   this.user=null;
   this.save=blankSave();
   this.status='local';
@@ -26,28 +29,74 @@ export class SaveStore extends EventTarget{
   this.timer=null;
   this.initializing=true;
   this.rewardQueue=[];
+  this.profileId=null;
+  this.profiles=[];
  }
  emit(){this.dispatchEvent(new Event('change'));}
  async init(_config){
   this.config=_config||{firebase:null,legacyLeaderboardUrl:'',legacySubmitEnabled:false};
   try{
-   const value=localStorage.getItem(this.guestKey);
-   if(value)this.guestAvailable=normalizeSave(JSON.parse(value));
-  }catch{this.status='storage-error';}
-  if(this.guestAvailable)this.save=this.guestAvailable;
+   this.repo.boot();
+   this.profiles=this.repo.listProfiles();
+   if(!this.profiles.length){
+    const p=this.repo.createProfile('同學');
+    this.repo.writeSave(blankSave('同學'),{profileId:p.id,name:'同學'});
+    this.profiles=this.repo.listProfiles();
+   }
+   this.profileId=this.repo.activeId()||this.profiles[0].id;
+   const raw=this.repo.readSave(this.profileId);
+   if(raw){
+    this.save=normalizeSave(raw);
+    this.guestAvailable=this.save;
+   }else{
+    this.save=blankSave(this.repo.getProfile(this.profileId)?.name||'同學');
+    this.writeLocal();
+   }
+  }catch{
+   this.status='storage-error';
+   try{
+    const value=localStorage.getItem(this.guestKey);
+    if(value){this.guestAvailable=normalizeSave(JSON.parse(value));this.save=this.guestAvailable;}
+   }catch{this.status='storage-error';}
+  }
   this.initializing=false;
-  this.status='local';
+  if(this.status!=='storage-error')this.status='local';
   this.emit();
   return this;
+ }
+ listProfiles(){return this.repo.listProfiles();}
+ activeProfile(){return this.repo.getProfile(this.profileId);}
+ async selectProfile(id){
+  this.repo.selectProfile(id);
+  this.profileId=id;
+  this.profiles=this.repo.listProfiles();
+  const raw=this.repo.readSave(id);
+  try{this.save=raw?normalizeSave(raw):blankSave(this.repo.getProfile(id)?.name||'同學');}
+  catch{this.save=blankSave('同學');this.status='storage-error';}
+  this.guestAvailable=this.save;
+  this.status='local';
+  this.emit();
+  return this.save;
+ }
+ async createProfile(name='同學'){
+  const n=cleanName(name)||'同學';
+  const p=this.repo.createProfile(n);
+  this.repo.writeSave(blankSave(n),{profileId:p.id,name:n});
+  return this.selectProfile(p.id);
+ }
+ async deleteProfile(id){
+  this.repo.deleteProfile(id);
+  return this.selectProfile(this.repo.activeId());
  }
  pkHistory(){return [];}
  async unpublishRanking(){return true;}
  key(){return this.guestKey;}
  writeLocal(){
   try{
-   const json=JSON.stringify(this.save);
-   if(new TextEncoder().encode(json).length>65536)throw Error('size');
-   localStorage.setItem(this.guestKey,json);
+   const id=this.profileId||this.repo.activeId();
+   this.repo.writeSave(this.save,{profileId:id,name:this.save.displayName});
+   this.profileId=this.repo.activeId();
+   this.profiles=this.repo.listProfiles();
    this.guestAvailable=this.save;
   }catch{this.status='storage-error';}
  }
@@ -101,6 +150,7 @@ export class SaveStore extends EventTarget{
  async flush(){this.writeLocal();return true;}
  async retrySave(){this.writeLocal();return true;}
  async logout(){
+  // new blank on same profile slot
   this.save=blankSave();
   this.pending=false;
   this.importCandidate=null;
@@ -120,10 +170,9 @@ export class SaveStore extends EventTarget{
   const merged=mergeSaves(this.save,{...candidate,collection:this.save.collection},{nameDirty:!this.save.displayName});
   this.update(grantOutfits(merged,outfitIds),{grantedOutfitIds:outfitIds});
  }
- export(){return JSON.stringify({game:'typing-adventure-en',route:'en',save:normalizeSave(this.save)},null,2);}
+ export(){return JSON.stringify(wrapExport(this.save,this.activeProfile()||{}),null,2);}
  importFile(value){
-  if(!value||(value.game!=='typing-adventure-en'&&value.game!=='wuxia-typing-journey'))throw Error('請揀呢個遊戲嘅存檔。');
-  if(value.route&&routeKey(value.route)!=='en')throw Error('只支援英文存檔。');
-  this.update(mergeSaves(this.save,normalizeSave(value.save),{nameDirty:!this.save.displayName}));
+  const payload=parseImport(value);
+  this.update(mergeSaves(this.save,normalizeSave(payload.save),{nameDirty:!this.save.displayName}));
  }
 }

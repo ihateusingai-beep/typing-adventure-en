@@ -1,0 +1,22 @@
+/* Multi-profile chips (classroom local-first) */
+.profile-rail{
+  display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 16px;
+}
+.profile-chip{
+  appearance:none;border:2px solid rgba(255,255,255,.22);
+  background:rgba(16,43,39,.72);color:#f4fff8;
+  border-radius:14px;padding:10px 14px;min-height:48px;
+  font:inherit;cursor:pointer;text-align:left;
+  display:flex;flex-direction:column;gap:2px;min-width:96px;
+}
+.profile-chip b{font-size:16px;line-height:1.2}
+.profile-chip small{opacity:.8;font-size:12px}
+.profile-chip.is-active{
+  border-color:#7dffb3;box-shadow:0 0 0 2px rgba(125,255,179,.25);
+  background:rgba(24,70,58,.9);
+}
+.profile-chip.profile-new{
+  border-style:dashed;opacity:.95;justify-content:center;align-items:center;
+  font-weight:700;
+}
+.profile-chip:focus-visible{outline:3px solid #ffe08a;outline-offset:2px}

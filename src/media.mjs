@@ -3,9 +3,24 @@ import {actorPoint} from './actor-point.mjs';
 import {PaintedFx} from './xianxia-fx.mjs';
 import {costumeStyle} from './costumes.mjs';
 import {ENEMY_MOTION,combatPlan,spritePose,blendSpritePose} from './combat.mjs';
+import {assetCache} from './system/cache.mjs';
 // Images are loaded by manifest and by current scene only. Missing art never silently becomes another character.
 let manifest={portraits:{},motion:{},backgrounds:{},enemies:{}};
-export async function initMedia(){try{const r=await fetch('game-data/media.json?v=brand1');if(r.ok)manifest=await r.json();}catch{}return manifest;}
+export async function initMedia(){
+  try{
+    const r=await assetCache.match('game-data/media.json?v=brand1');
+    if(r.ok)manifest=await r.json();
+  }catch{
+    try{const r=await fetch('game-data/media.json?v=brand1');if(r.ok)manifest=await r.json();}catch{}
+  }
+  // warm critical audio/brand in background
+  assetCache.prefetch([
+    'assets/brand/puichi-logo.png','assets/brand/ken-cheng-logo.png',
+    'audio/bgm_main_game.mp3','audio/bgm_title_screen.mp3','audio/bgm_battle.mp3',
+    'audio/sfx_answer_correct.mp3','audio/sfx_answer_wrong.mp3','audio/sfx_button_click.mp3',
+  ]).catch(()=>{});
+  return manifest;
+}
 export const media=()=>manifest;
 export const outfitThumbnail=id=>manifest.motion[id]?.thumbnail??'assets/v3/thumbnails/'+id+'.webp';
 export function portraitStyle(id,expression='calm'){
@@ -22,7 +37,8 @@ export function portraitHTML(id,expression='calm',classes=''){
 const imageCache=new Map();
 function loadImage(src){
  if(imageCache.has(src))return imageCache.get(src);
- const promise=new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('image'));image.src=src;});imageCache.set(src,promise);promise.catch(()=>imageCache.delete(src));return promise;
+ const promise=assetCache.loadImage(src);
+ imageCache.set(src,promise);promise.catch(()=>imageCache.delete(src));return promise;
 }
 export function watchArt(root){
  for(const el of root.querySelectorAll('[data-art-src]')){
