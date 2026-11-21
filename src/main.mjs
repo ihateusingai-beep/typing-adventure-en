@@ -1,8 +1,5 @@
 import {FIRST_CHALLENGE_CHAPTER,CHALLENGE_MIN_ACCURACY,CHALLENGE_REWARD_STONES,passesChallenge,shouldGuideChallenge} from './challenge-intro.mjs';
-import {RiftArena,riftHub,riftPreviewHTML,mountRiftPreview} from './rift-ui.mjs';
-import {RIFT_UNLOCK_NODE,RIFT_ROUTES} from '../game-data/rift.mjs';
 import {treasureFor,availableTreasures} from '../game-data/spirit-treasures.mjs';
-import {PvpClient} from './pvp/client.mjs';
 import {trialArtFor,TRIAL_SCENES,trialMarkHTML} from '../game-data/challenge-art.mjs';
 import {signatureFor} from '../game-data/signature-arts.mjs';
 import {PaintedFx} from './xianxia-fx.mjs';
@@ -11,18 +8,22 @@ import {actionLabelHTML,decorateActions,modalActionIcon,modalTitleIcon,savePrese
 import {approachFor} from './approaches.mjs?v=sen1';
 import {launchProjectile} from './costumes.mjs';
 import {collectionTabs,collectionBody,gemIcon} from './collection-ui.mjs';
-import {DRAW_POOL,EFFECTS,ATTACK_STYLES,endlessReward,endlessGrade,normalizeCollection} from './collection.mjs';
+import {ATTACK_STYLES,endlessGrade} from './collection.mjs';
 import {speakText,stopSpeak,voiceOn,speakButton} from './tts.mjs';
 import {unseenOutfits,markOutfitSeen,nextMissionId,AdvanceClock} from './rewards.mjs';
 import {BPMF_KEYS,BPMF_BY_KEY,physicalKey,routeKey,routeLabel} from './keyboard.mjs';
-import {NODES as EN_NODES,CHAPTERS as EN_CHAPTERS,NODE_BY_ID as EN_NODE_BY_ID,OUTFITS,ENEMIES,VERSION,blankSave,cleanName,accuracy,nextNode as englishNextNode,canStartNode,bossUnlocked,availableOutfits,availableEffects,availableAttacks,makeSession,targetOf,physicalCode,applyInput,sessionResult,completeNode,fingerFor,keyLabel,normalizeSave,mergeSaves,unlockDifferences,uid,resultStars,nodeStars,chapterStars,totalStars} from './core.mjs?v=values1';
+import {NODES as EN_NODES,CHAPTERS as EN_CHAPTERS,NODE_BY_ID as EN_NODE_BY_ID,OUTFITS,ENEMIES,VERSION,blankSave,cleanName,accuracy,nextNode as englishNextNode,canStartNode,bossUnlocked,availableOutfits,availableEffects,availableAttacks,makeSession,targetOf,physicalCode,sessionResult,completeNode,fingerFor,keyLabel,normalizeSave,mergeSaves,unlockDifferences,uid,resultStars,nodeStars,chapterStars,totalStars} from './core.mjs?v=values1';
 import {CHAPTER_COPY as EN_CHAPTER_COPY,openingFor as englishOpeningFor,closingFor as englishClosingFor,SPEAKERS,SCENES,missionFor as englishMissionFor} from './content.mjs?v=values1';
-import {EnemyDirector} from './enemy-director.mjs';
 import {CHALLENGE_STAGES,CHALLENGE_ENEMIES,CHALLENGE_ENEMY_IDS} from '../game-data/challenge-enemies.mjs';
 import {SaveStore} from './storage.mjs';
 import {initMedia,media,portraitHTML,Sprite,BattleEffects,Sound,watchArt,outfitThumbnail} from './media.mjs?v=brand1';
-import {readVirtKeyboardOn,writeVirtKeyboardOn,migrateLegacyInputMode,labelForCode,syntheticKeyEvent,QWERTY_ROWS,HOME_ANCHORS,isCodeInLesson} from './input-mode.mjs';
-import {DRILL_GROUPS,DRILL_GOAL,makeDrillNode,drillCodes,drillGroup} from './drill.mjs';
+import {writeVirtKeyboardOn,migrateLegacyInputMode,syntheticKeyEvent} from './input-mode.mjs';
+import {DRILL_GROUPS,DRILL_GOAL,makeDrillNode,drillGroup} from './drill.mjs';
+import {
+  grantPracticeStars, virtBoardHTML, virtToggleHTML, boardKind, syncVirtHighlights,
+  keyboardHTML as battleKeyboardHTML, targetHTML as battleTargetHTML, battleShellHTML,
+  runBattleKey, battleHudPatch, applyBattleHudPatch,
+} from './battle-ui.mjs?v=arch1';
 const $=s=>document.querySelector(s),screen=$('#screen'),modal=$('#modal'),worldMenu=$('#world-menu');
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const GAME_NAME='電腦打字大冒險';
@@ -37,7 +38,7 @@ const openingFor=(n,name)=>englishOpeningFor(n,name);
 const closingFor=(n,r)=>[{speaker:'PEER',expression:'happy',text:session?.approach==='solo'?approachFor(n).soloAfter:approachFor(n).observeAfter},...englishClosingFor(n,r)];
 let view='entry',chapterId='C01',typingMode='en',selectedOutfit='O00',session=null,node=null,fx=null,paused=false,dialogue=null,lastResult=null,legacyFrame=null,legacyKind='challenge',legacyIndex=0,generation=0,toastTimer,leaderboardAbort=null;
 let pvp=null;
-let sceneSprites=[],selectedMission=null,guideEnemy=null,guideStage=0,guideDirector=null;
+let sceneSprites=[],selectedMission=null,guideEnemy=null,guideStage=0;
 let bootstrapping=true;
 let selectedChallenge=0,entryNameDraft='',syncingRoutes=false;let wardrobeTab='outfits',outfitFilter='all',lastEndlessRun=null,lastChallengeRun=null;
 const held=new Set();let sceneTimer=null;let pendingModalClose=null;
@@ -205,61 +206,11 @@ function virtKeyboardOn(){
 function setDrillKbMode(mode,{toastMsg=true}={}){
   drillKbMode=mode==='qwerty'?'qwerty':'big';
   try{localStorage.setItem('typing_adventure_en_drill_kb',drillKbMode);}catch{}
-  if(view==='battle'&&node?.drill){refreshVirtBoard();screen.focus({preventScroll:true});}
+  if(view==='battle'&&node?.drill){refreshVirtBoard(true);screen.focus({preventScroll:true});}
   if(toastMsg)toast(drillKbMode==='qwerty'?'畫面鍵：完整 QWERTY':'畫面鍵：本組大掣');
 }
-function qwertyBoardRowsHTML(expect){
-  const t=targetOf(session);
-  return QWERTY_ROWS.map(row=>{
-    const keys=row.map(code=>{
-      const lab=labelForCode(code);
-      const isShift=code==='ShiftLeft'||code==='ShiftRight';
-      const isSpace=code==='Space';
-      const isT=!isShift&&code===expect;
-      const inLesson=isCodeInLesson(code,node,t);
-      const anchor=HOME_ANCHORS.has(code);
-      let cls='virt-key';
-      if(isShift)cls+=' is-shift';
-      if(virtShiftHeld&&isShift)cls+=' is-on';
-      if(isSpace)cls+=' is-space';
-      if(isT)cls+=' is-target';
-      if(inLesson&&!isT)cls+=' is-lesson';
-      if(anchor)cls+=' is-anchor';
-      const pressed=isShift?String(!!virtShiftHeld):'false';
-      return `<button type="button" class="${cls}" data-action="virt-key" data-code="${code}" aria-label="撳 ${lab}" aria-pressed="${isShift?pressed:'false'}">${esc(lab)}</button>`;
-    }).join('');
-    return `<div class="virt-row">${keys}</div>`;
-  }).join('');
-}
-function virtBoardHTML(){
-  if(!session||!node)return '';
-  const t=targetOf(session);
-  const expect=t?physicalCode(t.char):'';
-  // 練習模式：本組大掣 或 完整 QWERTY
-  if(node.drill){
-    if(drillKbMode==='qwerty'){
-      return `<div class="virt-board drill-board drill-qwerty" id="virt-board" aria-label="完整畫面鍵盤"><p class="virt-hint">完整 QWERTY · 本組鍵會亮 · 目標鍵發光 · 實體鍵都用得</p>${qwertyBoardRowsHTML(expect)}</div>`;
-    }
-    const codes=drillCodes(node);
-    const keys=codes.map(code=>{
-      const lab=labelForCode(code);
-      const isT=code===expect;
-      const anchor=HOME_ANCHORS.has(code);
-      let cls='virt-key drill-big'+(isT?' is-target':' is-lesson')+(anchor?' is-anchor':'');
-      return `<button type="button" class="${cls}" data-action="virt-key" data-code="${code}" aria-label="撳 ${lab}">${esc(lab)}</button>`;
-    }).join('');
-    return `<div class="virt-board drill-board" id="virt-board" aria-label="本組畫面鍵"><p class="virt-hint">本組大掣 · ${esc(node.title)} · 實體鍵都用得</p><div class="virt-row drill-row">${keys}</div></div>`;
-  }
-  return `<div class="virt-board" id="virt-board" aria-label="畫面鍵盤"><p class="virt-hint">畫面鍵盤 · 目標鍵會發光 · 都用得實體鍵</p>${qwertyBoardRowsHTML(expect)}</div>`;
-}
-function virtToggleHTML(){
-  if(node?.drill){
-    const big=drillKbMode!=='qwerty';
-    return `<div class="virt-toggle-row drill-kb-row" role="group" aria-label="畫面鍵模式">
-      <button type="button" class="text-link ${big?'is-active':''}" data-action="drill-kb" data-mode="big" aria-pressed="${big}">本組大掣</button>
-      <button type="button" class="text-link ${!big?'is-active':''}" data-action="drill-kb" data-mode="qwerty" aria-pressed="${!big}">完整鍵盤</button>
-    </div>`;
-  }
+function virtToggleResolvedHTML(){
+  if(node?.drill)return virtToggleHTML({node,drillKbMode,view,settings:store?.save?.settings});
   // journey: during setView() view may not yet be battle — prefer saved setting
   let on=false;
   if(view==='battle')on=virtKeyboardOn();
@@ -268,14 +219,13 @@ function virtToggleHTML(){
     if(typeof s.virtualKeyboard==='boolean')on=s.virtualKeyboard;
     else on=migrateLegacyInputMode(s);
   }
-  return `<div class="virt-toggle-row"><button type="button" class="text-link" data-action="toggle-virt">${on?'關閉畫面鍵盤':'開啟畫面鍵盤'}</button></div>`;
+  return virtToggleHTML({node,drillKbMode,view:on?'battle':'other',settings:{virtualKeyboard:on}});
 }
 function syncVirtBodyClass(){
   const on=view==='battle'&&virtKeyboardOn();
   document.body.classList.toggle('virt-on',on);
   document.body.classList.toggle('drill-kb-qwerty', !!(node?.drill&&drillKbMode==='qwerty'));
   document.body.classList.toggle('drill-kb-big', !!(node?.drill&&drillKbMode!=='qwerty'));
-  // input profile for CSS: virt battle shell vs phys desktop shell
   document.body.dataset.input=on?'virt':(view==='battle'?'phys':'');
   if(!on&&view!=='battle')delete document.body.dataset.input;
   return on;
@@ -285,35 +235,43 @@ function setVirtKeyboard(on,{toastMsg=true}={}){
   writeVirtKeyboardOn(v);
   store.update({...store.save,settings:{...store.save.settings,virtualKeyboard:v,inputMode:v?'virt':'phys'}},{settingsDirty:true});
   virtForceOn=null;
-  if(view==='battle'){refreshVirtBoard();screen.focus({preventScroll:true});}
+  if(view==='battle'){refreshVirtBoard(true);screen.focus({preventScroll:true});}
   else if(view==='settings')renderSettings();
   if(toastMsg)toast(v?'畫面鍵盤：開':'畫面鍵盤：關');
 }
-function refreshVirtBoard(){
+/** R3: force=true rebuild structure; else highlight-only when board kind matches. */
+function refreshVirtBoard(force=false){
   const on=syncVirtBodyClass();
   let board=$('#virt-board');
   if(!on){
-    if(board){board.hidden=true;board.innerHTML='';}
+    if(board){board.hidden=true;board.innerHTML='';board.removeAttribute('data-board-kind');}
     const row=$('.virt-toggle-row');
-    if(row){const w=document.createElement('div');w.innerHTML=virtToggleHTML();row.replaceWith(w.firstElementChild);}
+    if(row){const w=document.createElement('div');w.innerHTML=virtToggleResolvedHTML();row.replaceWith(w.firstElementChild);}
+    return;
+  }
+  const kind=boardKind(node,drillKbMode);
+  const canReuse=board&&!board.hidden&&board.dataset.boardKind===kind&&!force;
+  if(canReuse){
+    syncVirtHighlights(session,virtShiftHeld);
+    const row=$('.virt-toggle-row');
+    if(row){const w=document.createElement('div');w.innerHTML=virtToggleResolvedHTML();row.replaceWith(w.firstElementChild);}
     return;
   }
   if(!board){
-    // dock outside playfield (sibling) so fixed-bottom touch shell works
     const host=$('#battle-stage')||$('.view.battle')||screen;
-    if(host){host.insertAdjacentHTML('beforeend', virtBoardHTML()+virtToggleHTML());board=$('#virt-board');}
+    if(host){host.insertAdjacentHTML('beforeend', virtBoardHTML(session,node,drillKbMode,virtShiftHeld)+virtToggleResolvedHTML());board=$('#virt-board');}
   }
   if(!board)return;
   board.hidden=false;
   const wrap=document.createElement('div');
-  wrap.innerHTML=virtBoardHTML();
+  wrap.innerHTML=virtBoardHTML(session,node,drillKbMode,virtShiftHeld);
   const next=wrap.firstElementChild;
   if(next)board.replaceWith(next);
   const row=$('.virt-toggle-row');
-  if(row){const w=document.createElement('div');w.innerHTML=virtToggleHTML();row.replaceWith(w.firstElementChild);}
+  if(row){const w=document.createElement('div');w.innerHTML=virtToggleResolvedHTML();row.replaceWith(w.firstElementChild);}
   else {
     const b=$('#virt-board');
-    if(b)b.insertAdjacentHTML('afterend', virtToggleHTML());
+    if(b)b.insertAdjacentHTML('afterend', virtToggleResolvedHTML());
   }
 }
 function applyVirtKey(code){
@@ -321,7 +279,7 @@ function applyVirtKey(code){
   sound.unlock();
   if(code==='ShiftLeft'||code==='ShiftRight'){
     virtShiftHeld=!virtShiftHeld;
-    refreshVirtBoard();
+    syncVirtHighlights(session,virtShiftHeld);
     const msg=$('#story-message');
     if(msg)msg.textContent=virtShiftHeld?'Shift 開咗 · 再撳字母':'Shift 關咗';
     return;
@@ -329,27 +287,19 @@ function applyVirtKey(code){
   const shift=virtShiftHeld;
   processKey(syntheticKeyEvent(code,{shiftKey:shift}));
   if(shift&&code.startsWith('Key'))virtShiftHeld=false;
-  refreshVirtBoard();
+  // processKey already syncs highlights
   screen.focus({preventScroll:true});
 }
-
-function keyboardHTML(){
- const t=targetOf(session);if(!t)return '';const char=BPMF_KEYS[t.char]??t.char.toLowerCase();let row='asdfghjkl;';if('1234567890-'.includes(char))row='1234567890-';else if('qwertyuiop'.includes(char))row='qwertyuiop';else if('zxcvbnm,./'.includes(char))row='zxcvbnm,./';else if(char===' ')row=' ';
- return `${t.shift?'<kbd class="lit">Shift</kbd>':''}${Array.from(row).map(k=>`<kbd class="${k===char?'lit':k==='f'||k==='j'?'anchor':''}">${esc(k===' '?'空白':typingMode==='zh-bpmf'?(BPMF_BY_KEY[k]??'·'):k.toUpperCase())}</kbd>`).join('')}`;
-}
-function targetHTML(){
- const t=targetOf(session);if(!t)return '';
- if(t.kind==='guard')return `<span class="story-guard-label">${gameIcon('shield')}格擋</span><kbd class="story-guard-key">${esc(keyLabel(t.char))}</kbd>`;
- return `${t.shift?'<span class="shift-hint">Shift ＋</span>':''}${Array.from(t.value).map((char,i)=>`<span class="${i<session.progress?'done':i===session.progress?'current':''} ${char===' '?'space-char':''}">${esc(char===' '?'空白':t.kind==='word'||t.kind==='case'?char:char.toUpperCase())}</span>`).join('')}`;
-}
+function keyboardHTML(){return battleKeyboardHTML(session,typingMode);}
+function targetHTML(){return battleTargetHTML(session);}
 function renderBattle(){
  const enemy=ENEMIES[node.enemyId],o=outfit();
  const title=node.drill?`練習 / ${node.title}`:`${routeLabel(typingMode)} / ${esc(missionFor(node).title)}`;
  const helpRow=node.drill
   ?`<div class="battle-help-row"><button class="text-link" data-action="help-key">睇鍵盤</button><button class="text-link" data-action="drill">換組</button></div>`
   :`<div class="battle-help-row"><button class="text-link" data-action="help-key">睇鍵盤</button><button class="text-link" data-action="demo">再睇示範</button></div>`;
- // virt board OUTSIDE story-playfield so touch shell can dock kb at bottom without scroll-away
-  setView('battle',frame(`<div class="story-hud">${metrics(session,true)}${node.drill?`<div class="drill-progress" id="drill-progress">${session.correct}/${node.completion.target}</div>`:''}<button class="quiet" data-action="pause">${gameIcon('pause')}停</button></div><div class="story-playfield"><div class="target-area"><div class="target-label" id="target-label">${title}</div><div class="target-word" id="target-word" aria-label="而家要撳">${targetHTML()}</div><div class="finger" id="finger">${esc(fingerFor(targetOf(session).char))} · 慢慢嚟得</div></div><div class="story-actors"><div class="actor-wrap hero-actor"><div id="hero-motion" aria-label="${esc(o.name)}"></div></div><div class="actor-wrap enemy-actor"><div id="enemy-motion" aria-label="${esc(enemy.name)}"></div><span class="enemy-intent" aria-hidden="true"></span><span class="actor-caption">${esc(enemy.name)}</span></div></div><div class="story-message" id="story-message" role="status" aria-live="polite">${node.drill?'練習 · 睇清楚再撳。':'睇清楚，再撳。'}</div><div class="keyboard-hint" id="keyboard-hint" ${node.drill||node.chapterId==='C01'?'':'hidden'}>${keyboardHTML()}</div>${helpRow}<div class="no-keyboard">可以用鍵盤，或者下面大掣。</div></div>${virtBoardHTML()}${virtToggleHTML()}`,'battle'+(node.drill?' drill-battle':''),`id="battle-stage" data-node-id="${node.id}" data-drill="${node.drill?'1':'0'}"`),{scene:node.backgroundId||'BG_YARD'});
+ const shell=battleShellHTML({node,session,title,metricsHTML:metrics(session,true),helpRow,outfitName:o.name,enemyName:enemy.name});
+ setView('battle',frame(`${shell}${virtBoardHTML(session,node,drillKbMode,false)}${virtToggleResolvedHTML()}`,'battle'+(node.drill?' drill-battle':''),`id="battle-stage" data-node-id="${node.id}" data-drill="${node.drill?'1':'0'}"`),{scene:node.backgroundId||'BG_YARD'});
  if(node.drill)document.body.classList.add('drill-mode');
  const hero=new Sprite($('#hero-motion'),o.id,{reduced:reduced(),effectId:store.save.equippedEffectId,attackStyle:store.save.attackStyle,relicId:store.save.equippedTreasureId});const foe=new Sprite($('#enemy-motion'),node.enemyId,{enemy:true,reduced:reduced()});
  fx=new BattleEffects($('#battle-stage'),hero,foe,{reduced:reduced(),onCue:cue=>sound.play(cue, cue==='hurt'?.52:.48)});fx.setTarget(targetOf(session).kind);sound.bgm(node.drill||node.chapterId==='C07'?'battle':'main');
@@ -363,33 +313,17 @@ function showDemo({intro=false}={}){
 }
 function resumeBattle(){paused=false;fx?.resume();syncVirtBodyClass();screen.focus({preventScroll:true});sound.resume();}
 function processKey(event){
- const result=applyInput(session,event);if(result.event==='ignored')return;
- session=result.state;const correct=result.event!=='wrong';if(correct)clearTimeout(sceneTimer);const move=result.event==='complete'?(result.target.kind==='guard'?'guard':result.target.kind==='word'?'word':'correct'):result.event;fx?.event(move,{combo:session.combo});
- $('#stat-acc').textContent=accuracy(session)+'%';$('#stat-combo').textContent=session.combo;$('#stat-score').textContent=session.score;
- const answer=correct?'correct':'wrong',msg=$('#story-message');msg.dataset.answer=answer;$('#target-word').dataset.answer=answer;
- if(result.event==='complete'){finishLesson();return;}
- $('#target-word').innerHTML=targetHTML();const current=targetOf(session);fx?.setTarget(current.kind);$('#finger').textContent=(current.shift?'按住 Shift，再撳字母':fingerFor(current.char))+' · 慢慢嚟得';$('#keyboard-hint').innerHTML=keyboardHTML();
- const dp=$('#drill-progress');if(dp&&node?.drill)dp.textContent=`${session.correct}/${node.completion.target}`;
- if(!correct){msg.textContent='✕ 唔啱。'+(session.errorStreak>=3?`先搵${fingerFor(current.char)}下嘅 ${keyLabel(current.char)}。慢慢嚟。`:`再撳 ${keyLabel(current.char)} 再試。`);if(session.errorStreak>=3)$('#keyboard-hint').hidden=false;if(session.errorStreak===5&&!node?.drill){sceneTimer=setTimeout(()=>{if(view==='battle'&&!paused)showDemo();},550);}}
- else{msg.textContent='✓ 啱喇 · '+(result.event==='guard'?'守住了！看準再出下一招。':result.event==='word'?'這一串完成了，穩穩的一招。':session.combo%5===0?`${session.combo} 連中，越來越穩了。`:'下一個。');}
- refreshVirtBoard();
+ const result=runBattleKey(session,event);if(result.event==='ignored')return;
+ session=result.state;if(result.event!=='wrong')clearTimeout(sceneTimer);
+ const patch=battleHudPatch(session,result,node,typingMode);
+ fx?.event(patch.move,{combo:session.combo});
+ applyBattleHudPatch(patch);
+ if(patch.complete){finishLesson();return;}
+ if(patch.offerDemo){sceneTimer=setTimeout(()=>{if(view==='battle'&&!paused)showDemo();},550);}
+ // R3: highlight-only virt update
+ if(!syncVirtHighlights(session,virtShiftHeld))refreshVirtBoard(false);
 }
-function grantPracticeStars(save,amount,claimId=null){
-  const c=normalizeCollection(save.collection);
-  if(claimId){
-    if(c.claimedIds.includes(claimId))return {save,stones:0,newItems:[]};
-    c.claimedIds=[...c.claimedIds,claimId].slice(-128);
-  }
-  const n=Math.max(0,Math.round(Number(amount)||0));
-  c.earned+=n;c.stones+=n;c.revision++;
-  // 練習星解鎖 O08–O15（唔靠祈願）
-  const ladder=[['outfit-O08',25],['outfit-O09',50],['outfit-O10',80],['outfit-O11',110],['outfit-O12',140],['outfit-O13',170],['outfit-O14',200],['outfit-O15',230]];
-  const newItems=[];
-  for(const [item,need] of ladder){
-    if(c.earned>=need&&!c.items.includes(item)){c.items.push(item);newItems.push(item);}
-  }
-  return {save:{...save,collection:c},stones:n,newItems};
-}
+
 function finishLesson(){
  clearTimeout(sceneTimer);
  if(node?.drill){
@@ -450,85 +384,39 @@ function equipLoadout(kind,id){
  if(kind==='effect'&&!availableEffects(store.save).some(e=>e.id===id)||kind==='attack'&&!availableAttacks(store.save).some(a=>a.id===id))return;
  store.update({...store.save,[kind==='effect'?'equippedEffectId':'attackStyle']:id},{loadoutDirty:true});sound.play('equip',.45);renderWardrobe();toast('已安裝，可以預覽。');
 }
-async function drawCollection(){
- const current=store,button=$('[data-action=draw-item]');if(!button||button.disabled)return;button.disabled=true;button.setAttribute('aria-busy','true');button.innerHTML=gameIcon('clock')+'<span>祈願中…</span>';
- try{const result=await current.draw(button.dataset.pool);if(store!==current||view!=='wardrobe')return;renderWardrobe();sound.play('unlock',.5);const item=result.item;
-  const image=item.kind==='outfit'?`<img class="draw-outfit" src="${outfitThumbnail(item.target)}" alt="${esc(item.name)}">`:`<span class="attack-emblem ${item.kind==='attack'?'style-'+item.target:'style-spell'}">${gameIcon(item.kind==='attack'?item.target:'gift')}</span>`;
-  showModal(result.firstOutfit?'第一套祈願服裝':item.rarity==='限定'?'獲得限定服裝':'獲得新珍藏',`<div class="draw-reveal">${image}<span class="chapter">${item.rarity}</span><h3>${esc(item.name)}</h3><p>已加入收藏，可以獨立搭配服裝、特效與流派。</p><small>目前靈石 ${current.save.collection.stones}</small></div>`,[{label:'繼續看看'},{label:item.kind==='outfit'?'穿上這套衣服':'立刻安裝',primary:true,fn:()=>{if(item.kind==='outfit'){wardrobeTab='outfits';store.update({...markOutfitSeen(store.save,item.target),equippedOutfitId:item.target},{outfitDirty:true});renderWardrobe(item.target);}else{wardrobeTab=item.kind==='effect'?'effects':'attacks';equipLoadout(item.kind==='effect'?'effect':'attack',item.target);}}}]);
- }catch(error){if(store===current){toast(error.message||'祈願暫時未完成，請重試。');if(view==='wardrobe')renderWardrobe();}}
-}
+async function drawCollection(){toast('祈願未開。用練習星解鎖衫。');}
 async function renderEndlessRanking(){
- setView('endless-ranking',frame(`<div class="chapter">玩家自行選擇公開 / 練習排行榜</div><h1 class="section-title">${routeLabel(typingMode)}分數榜</h1><p class="small">每位玩家顯示一筆最佳成績。只公開遊戲暱稱與練習結果。</p><div class="rank-personal"><b>我的最佳 ${store.save.bossBest.score} 分</b><span>${endlessGrade(store.save.bossBest)} 級 · ${store.save.bossBest.rounds} 輪</span></div><div id="endless-rank-content" class="empty-state" role="status">讀緊榜…</div><div class="settings-links">${primary('publish-rank',store.user?'公開我的最佳成績':'登入後可公開成績')}${secondary('boss','返回額外關')}</div><button class="text-link" data-action="endless-ranking">重新讀取排行榜</button>${store.user?'<button class="text-link" data-action="unpublish-rank">取消公開我的成績</button>':''}<p class="small rank-privacy">不會自動上榜。公布前可確認暱稱，也能隨時取消。</p>`,'leaderboard endless-ranking'));
- const gen=generation,current=store;try{const rows=await current.readEndlessRanking();if(gen!==generation||store!==current)return;$('#endless-rank-content').classList.remove('empty-state');$('#endless-rank-content').innerHTML=rows.length?`<table><thead><tr><th>名次</th><th>同學</th><th>分數</th><th>評級</th></tr></thead><tbody>${rows.map((row,i)=>`<tr class="${row.id===current.user?.uid?'my-rank':''}"><td>${i+1}</td><td>${esc(cleanName(row.displayName)||'同學')}</td><td>${Math.max(0,Math.round(Number(row.score)||0))}</td><td>${esc(row.grade)}</td></tr>`).join('')}</tbody></table>`:'<div class="empty-state">這條路線還沒有公開紀錄。<br>可以先挑戰自己的最佳。</div>';}catch{$('#endless-rank-content')&&( $('#endless-rank-content').textContent='排行榜暫時無法連線，稍後再試。');}
+ setView('endless-ranking',frame(`<div class="chapter">排行榜</div><h1 class="section-title">分數榜未開</h1><p class="small">本機版唔連線排行榜。個人最佳：${store.save.bossBest.score} 分。</p><div class="settings-links">${secondary('boss','返回')}${secondary('home','主頁')}</div>`,'leaderboard endless-ranking'));
 }
-function publishEndless(){
- if(!store.user){renderAccount();return;}if(!store.save.bossBest.score){toast('先完成一回額外關吧。');return;}
- const current=store;showModal('確認公開這筆成績',`<p>遊戲暱稱：${esc(current.save.displayName||'同學')}<br>最佳分數：${current.save.bossBest.score}<br>評級：${endlessGrade(current.save.bossBest)}</p><p class="small">這些資料會出現在 ${routeLabel(current.route)}無盡排行榜，可隨時取消公開。</p>`,[{label:'暫不公開'},{label:'公開成績',primary:true,fn:async()=>{try{await current.publishRanking();if(store===current){renderEndlessRanking();toast('已公開自己的最佳成績。');}}catch(error){toast(error.message||'上榜暫時失敗，請重試。');}}}]);
-}
+function publishEndless(){toast('排行榜未開。');}
 const CHALLENGES=[['紮馬步','看符文、集氣出劍','forest'],['梯雲縱','上排踏雲與回防','frozen_peak'],['掃堂腿','下排格擋與反震','cave'],['劍氣縱橫','完整字串，連成一招','ruins'],['決戰魔教','輸入與防禦，攻守切換','volcano']];
 function routeText(text){return typingMode==='zh-bpmf'?text.replace(/\b[A-Z]\b/g,key=>BPMF_BY_KEY[key.toLowerCase()]??key):text;}
 function modePicker(){return '';}
 function switchRoute(_value){toast('呢個版本只練英文鍵。');}
-function renderPvp(initial={}){
- setView('pvp','<div id="pk-root"></div>',{scene:'TRIAL_0'});
- pvp=new PvpClient($('#pk-root'),{initial,profile:()=>({route:typingMode,name:store.save.displayName||'同學',outfit:store.save.equippedOutfitId,effect:store.save.equippedEffectId,style:store.save.attackStyle,relic:store.save.equippedTreasureId,user:store.user,reduced:reduced()}),sound,toast,onExit:renderChallenges,history:()=>store.pkHistory(),confirm:(title,body)=>new Promise(resolve=>{showModal(title,`<p>${esc(body)}</p>`,[{label:'繼續留在擂台',primary:true,fn:()=>resolve(false)},{label:'確認',fn:()=>resolve(true)}]);pendingModalClose=()=>resolve(false);})});
-}
+function renderPvp(){toast('教室 PK 未開。');renderHome();}
 function renderTrials(){
  const modes=[
-  {id:'rift',name:'異獸秘境',format:'五戰遠征',note:'擊敗五隻異獸，每勝一戰可回氣或蓄力。',reward:'擊倒異獸賺靈石，到鑄靈強化裝備',unlock:store.save.completedNodeIds.includes(RIFT_UNLOCK_NODE)?'可探索':'完成劇情第二章開放',icon:'talisman',art:trialArtFor(3).card},
-  {id:'boss',name:'額外關',format:'生存拚分',note:'連戰無固定關數，守住氣血，挑戰個人最佳。',reward:'依分數與啱幾多評級，另有專屬排行榜',unlock:bossUnlocked(store.save)?'可挑戰':'完成劇情最終節開放',icon:'boss',art:trialArtFor(4).card}
+  {id:'rift',name:'異獸秘境',format:'五戰遠征',note:'本機版未開。',reward:'—',unlock:'未開',icon:'talisman',art:trialArtFor(3).card},
+  {id:'boss',name:'額外關',format:'生存拚分',note:'連戰無固定關數。',reward:'本機個人最佳',unlock:bossUnlocked(store.save)?'可睇':'完成旅程最終節',icon:'boss',art:trialArtFor(4).card}
  ];
  setView('trials',frame(`<section class="trial-gate"><p class="chapter">${routeLabel(typingMode)} / 額外</p><h1 class="section-title">試煉</h1><div class="trial-gate-grid">${modes.map(m=>`<button data-action="${m.id}" class="trial-gate-card" style="--gate-scene:url('${new URL(m.art,document.baseURI).href}')"><span class="gate-format">${gameIcon(m.icon)}${m.format}</span><b>${m.name}</b><span class="gate-note">${m.note}</span><span class="gate-reward">${m.reward}</span><span class="gate-unlock">${m.unlock} <span aria-hidden="true">→</span></span></button>`).join('')}</div></section>`,'trial-gate-view'),{scene:'BG_YARD'});
 }
 function renderChallenges(){renderChallengeBrief(selectedChallenge);}
 function renderChallengeBrief(index=0){
- const i=Math.min(4,Math.max(0,Number(index)||0));selectedChallenge=i;const stage=CHALLENGE_STAGES[i],first=CHALLENGE_ENEMIES[stage.enemies[0]],best=store.save.challengeBest[`${typingMode}:${i+1}`];
- setView('briefing',frame(`<div class="challenge-brief-copy"><nav class="challenge-choices" aria-label="選擇挑戰關卡">${CHALLENGE_STAGES.map((s,k)=>`<button data-action="challenge-brief" data-index="${k}" aria-pressed="${k===i}"><span>第 ${k+1} 關</span><b>${esc(s.name)}</b></button>`).join('')}</nav><div class="chapter trial-chapter">${trialMarkHTML(i)}第 ${i+1} 關 / ${esc(stage.chapter)}</div><h1>${esc(stage.name)}</h1><p class="challenge-story">${esc(stage.story)}</p><div class="challenge-objective"><span>這一回的任務</span><p>${esc(routeText(stage.goal))}</p><div class="challenge-key-row">${esc(typingMode==='zh-bpmf'?'依畫面注音符號按鍵，不用選字或送出國字。':stage.keys)}</div></div><p class="small">${esc(routeText(stage.tip))}<br>每關限時三分鐘，啱幾多低於 ${CHALLENGE_MIN_ACCURACY}% 會挑戰失敗。</p>${`<p class="small challenge-first-reward">${gameIcon('gem')}達標可拿星星，並獲得 ${CHALLENGE_REWARD_STONES} 靈石。</p>`}${store.rewardQueue?.some(run=>run.kind==='challenge')?secondary('retry-challenge-rewards','補領挑戰獎勵'):''}<div class="brief-actions">${primary('begin-challenge','準備好了，開始 →',`data-index="${i}"`)}${secondary('enemy-guide','敵人圖鑑',`data-index="${i}"`)}</div><details class="trial-records"><summary>切磋與紀錄</summary><div class="pk-actions">${secondary('pvp','教室 PK')}${secondary('leaderboard','五關排行榜')}</div></details></div><div class="brief-opponent"><div class="enemy-preview" id="brief-enemy"></div><p>${esc(first.move)}</p><div class="brief-record">${best?`個人最佳 ${best.score} 分 ${starsHTML(best.stars)}`:'每個對手唔同。'}</div></div>`,'challenge-brief'),{scene:trialArtFor(i).scene});
- sceneSprites.push(new EnemyDirector($('#brief-enemy'),first.id,{reduced:reduced(),preview:true}));
+ const i=Math.min(4,Math.max(0,Number(index)||0));selectedChallenge=i;const stage=CHALLENGE_STAGES[i],first=CHALLENGE_ENEMIES[stage.enemies[0]];
+ setView('briefing',frame(`<div class="challenge-brief-copy"><nav class="challenge-choices" aria-label="選擇挑戰關卡">${CHALLENGE_STAGES.map((s,k)=>`<button data-action="challenge-brief" data-index="${k}" aria-pressed="${k===i}"><span>第 ${k+1} 關</span><b>${esc(s.name)}</b></button>`).join('')}</nav><div class="chapter trial-chapter">${trialMarkHTML(i)}第 ${i+1} 關 / ${esc(stage.chapter)}</div><h1>${esc(stage.name)}</h1><p class="challenge-story">${esc(stage.story)}</p><p class="small">額外關未開。請用<strong>旅程</strong>或<strong>練習模式</strong>。</p><div class="brief-actions">${secondary('home','返主頁')}${secondary('drill','練習模式')}${secondary('enemy-guide','敵人圖鑑',`data-index="${i}"`)}</div></div><div class="brief-opponent"><img src="${first.src}" alt="" style="max-width:180px" loading="lazy"><p>${esc(first.move)}</p></div>`,'challenge-brief'),{scene:trialArtFor(i).scene});
 }
 function renderEnemyGuide(index=guideStage,id){
  guideStage=Math.min(4,Math.max(0,Number(index)||0));const stage=CHALLENGE_STAGES[guideStage];guideEnemy=stage.enemies.includes(id)?id:stage.enemies[0];const enemy=CHALLENGE_ENEMIES[guideEnemy];
- const personality={serpent:'盤身觀察，蓄力後快速探身。',beast:'壓低重心，再向前撲擊。',spirit:'隨呼吸浮動，凝聚力量後施法。',wing:'振翅懸停，凝視之後發出光波。',fighter:'穩住腳步，抬手蓄勢後揮斬。',mage:'衣袖隨呼吸擺動，先結印再放出咒文。',heavy:'步伐較沉，重踏之前會明顯蓄力。',tree:'枝幹緩緩搖動，再以根與枝葉出招。',dragon:'身軀隨吐息起伏，蓄勢後噴出寒霜。',flame:'焰身持續流動，凝聚後向外釋放熱浪。',lord:'沉穩浮動，凝聚劍氣後才進招。'};
- setView('enemy-guide',frame(`<div class="guide-head"><div><div class="chapter">守關敵人圖鑑 / 共 ${CHALLENGE_ENEMY_IDS.length} 種</div><h1 class="section-title">睇清楚對手，再撳。</h1></div><button class="quiet" data-action="challenge-brief" data-index="${guideStage}">返回</button></div><label class="catalog-select stage-select">關卡<select id="guide-stage">${CHALLENGE_STAGES.map((s,i)=>`<option value="${i}" ${i===guideStage?'selected':''}>${esc(s.name)}</option>`).join('')}</select></label><div class="enemy-guide-layout"><div class="enemy-roster" aria-label="選擇敵人">${stage.enemies.map(key=>{const p=CHALLENGE_ENEMIES[key];return `<button class="${key===guideEnemy?'selected':''}" data-action="select-enemy" data-id="${key}" aria-pressed="${key===guideEnemy}"><img src="${p.src}" alt="" loading="lazy"><span>${esc(p.name)}</span></button>`;}).join('')}</div><article class="enemy-dossier" tabindex="-1"><div class="enemy-preview" id="guide-enemy"></div><h2>${esc(enemy.name)}</h2><div class="enemy-move-title">${esc(enemy.move)}</div><p>${esc(personality[enemy.body])}</p><div class="enemy-demo-actions">${secondary('enemy-demo','待機',`data-motion="idle"`)}${primary('enemy-demo','睇下',`data-motion="attack"`)}${secondary('enemy-demo','受擊',`data-motion="hurt"`)}${secondary('enemy-demo','退場',`data-motion="defeat"`)}</div><p class="small">看看對手的動作，準備好再出發。</p></article></div>`,'enemy-guide'),{scene:'forest'});
- guideDirector=new EnemyDirector($('#guide-enemy'),enemy.id,{reduced:reduced(),preview:true});sceneSprites.push(guideDirector);
+ setView('enemy-guide',frame(`<div class="guide-head"><div><div class="chapter">敵人圖鑑</div><h1 class="section-title">${esc(enemy.name)}</h1></div><button class="quiet" data-action="challenge-brief" data-index="${guideStage}">返回</button></div><div class="enemy-guide-layout"><div class="enemy-roster" aria-label="選擇敵人">${stage.enemies.map(key=>{const p=CHALLENGE_ENEMIES[key];return `<button class="${key===guideEnemy?'selected':''}" data-action="select-enemy" data-id="${key}" aria-pressed="${key===guideEnemy}"><img src="${p.src}" alt="" loading="lazy"><span>${esc(p.name)}</span></button>`;}).join('')}</div><article class="enemy-dossier"><h2>${esc(enemy.name)}</h2><p>${esc(enemy.move)}</p><p class="small">額外關未開；可以先玩旅程同練習。</p></article></div>`,'enemy-guide'),{scene:'forest'});
 }
 function showChallengeHelp(){
  const stage=CHALLENGE_STAGES[legacyIndex]??CHALLENGE_STAGES[4];showModal('點玩？',`<p>${esc(routeText(stage.goal))}</p><p class="small">${esc(routeText(stage.tip))}</p>`,[{label:'繼續挑戰',primary:true,fn:()=>legacyFrame?.contentWindow?.postMessage({type:'wuxia:resume'},location.origin)}]);
 }
-let riftArea='ruins';
-function renderRift(area=riftArea,difficulty='normal'){
- riftArea=Object.hasOwn(RIFT_ROUTES,area)?area:'ruins';
- setView('rift',frame(riftHub(store.save,riftArea,difficulty),'rift-view'),{scene:RIFT_ROUTES[riftArea].scene});
-}
-function previewRiftEnemy(button){
- const enemy=RIFT_ROUTES[riftArea].enemies.find(e=>e.id===button.dataset.id);
- if(!enemy)return;
- showModal(enemy.name,riftPreviewHTML(enemy),[{label:'回到秘境'}]);
- const panel=modal.querySelector('.rift-preview');
- const preview=mountRiftPreview(panel,enemy,reduced(),sound);
- function releasePreview(){
-  if(modal.open&&panel.isConnected)return;
-  modal.removeEventListener('close',releasePreview);
-  preview.destroy();
- }
- modal.addEventListener('close',releasePreview);
-}
-function startRiftBattle(){
- const hard=$('#rift-difficulty')?.value==='hard';
- if(!store.save.completedNodeIds.includes(RIFT_UNLOCK_NODE)||(hard||riftArea==='moon')&&store.save.collection.forge.best!==5)return;
- setView('rift-battle','<div id="rift-root" tabindex="-1"></div>',{scene:RIFT_ROUTES[riftArea].scene});
- riftArena=new RiftArena($('#rift-root'),{store,route:typingMode,hard,area:riftArea,sound,reduced:reduced(),exit:renderRift});
- $('#rift-root').focus({preventScroll:true});sound.bgm('battle');
-}
-let forgeBusy=false;
-async function forgeItem(button){
- if(forgeBusy||button.disabled)return;
- const current=store;forgeBusy=true;button.disabled=true;
- try{const r=await current.forge(button.dataset.kind,button.dataset.id);
-  if(current===store&&view==='wardrobe'&&wardrobeTab==='forge'){renderWardrobe();sound.play('equip',.4);toast(r.price?'已完成，使用 '+r.price+' 靈石。':'已更新護符。');}
- }catch(error){if(current===store){button.disabled=false;toast(error.message);}}
- finally{forgeBusy=false;}
-}
+function renderRift(){toast('異獸秘境未開。');renderHome();}
+function previewRiftEnemy(){toast('異獸秘境未開。');}
+function startRiftBattle(){toast('異獸秘境未開。');}
+async function forgeItem(){toast('鑄靈未開。');}
 function renderBoss(){const open=bossUnlocked(store.save),best=store.save.bossBest;setView('boss',frame(`<div><div class="chapter">試煉 / 生存拚分</div><h1>額外關</h1><p>${open?'連戰無固定關數。睇清楚再撳，守好自己。':'完成劇情最終節後，額外關就會開放。跟老師慢慢學打字。'}</p>${open?`<div class="endless-reward-preview"><span>個人最佳 <b>${best.score} 分</b></span><span>${endlessGrade(best)} 級 · ${best.rounds} 輪</span><span class="stone-wallet">${gemIcon}<b>${store.save.collection.stones}</b> 靈石</span></div><p class="small">每回 10 次有效按鍵起可領靈石；分數與啱幾多越高，評級與獎勵越高。</p>${primary('start-boss','進入額外關 · Enter →')}`:primary('journey','開啟任務選單 →')}${store.rewardQueue?.some(run=>run.kind!=='challenge')?secondary('retry-rewards','補領已完成試煉獎勵'):''}<div class="boss-links">${secondary('trials','返回試煉')}${secondary('endless-ranking','無盡排行榜')}${secondary('collection-tab','靈石祈願','data-id="draw"')}</div><details class="reward-rules"><summary>評級與靈石怎麼算？</summary><p>S：6000 分、95% 啱幾多；A：3000 分、90%；B：1200 分、80%；C：300 分、60%。其他為 D。<br>靈石＝20＋每 100 分 1 顆＋評級加成（S 100／A 65／B 35／C 15），每回最多 300 顆；少於 10 次有效按鍵不發放。</p></details></div>${open?'<img class="boss-art" src="assets/monsters/nether_lord_boss.gif" alt="額外關對手">':'<div class="locked-emblem" aria-hidden="true">封</div>'}`,'boss-panel'),{scene:'volcano'});}
 function startLegacy(kind,index=0){
   // legacy.html not shipped in this fork — avoid infinite wait iframe
@@ -572,24 +460,8 @@ function renderSettings(){
  syncVoiceChrome();
 }
 
-function normalizeRows(payload){
- const source=payload?.top3ByStage??payload?.leaderboard??payload?.stages??payload;
- if(Array.isArray(source)){return source.filter(r=>Number(r.stageId??r.stage??rankStage)===rankStage);}
- const group=source?.[String(rankStage)]??source?.[`stage${rankStage}`];if(Array.isArray(group))return group;
- if(Array.isArray(group?.entries))return group.entries;if(Array.isArray(group?.top3))return group.top3;
- if(Array.isArray(payload?.rows))return payload.rows.filter(r=>Number(r.stageId??r.stage)===rankStage);
- return [];
-}
-async function renderLeaderboard(stage=rankStage){
- rankStage=stage;setView('leaderboard',frame(`<div class="chapter">沿用原五關排行榜</div><h1 class="section-title">${routeLabel(typingMode)}分數榜</h1><button class="text-link" data-action="endless-ranking">查看無盡排行榜 →</button><div class="mode-picker">${CHALLENGES.map(([name],i)=>`<button class="${rankStage===i+1?'active':''}" data-action="rank-stage" data-index="${i+1}">${name}</button>`).join('')}</div><div id="rank-content" class="empty-state" role="status">正在讀取排行榜…</div><div class="settings-links">${secondary('refresh-rank','重新讀取')}${secondary('challenges','返回挑戰')}</div>`,'leaderboard'));
- const gen=generation;leaderboardAbort=new AbortController();const timer=setTimeout(()=>leaderboardAbort?.abort(),10000);
- try{
-  const url=new URL(store.config.legacyLeaderboardUrl);url.searchParams.set('action','leaderboard');url.searchParams.set('typingMode',typingMode);
-  const r=await fetch(url,{signal:leaderboardAbort.signal});if(!r.ok)throw Error('http');const payload=await r.json();if(gen!==generation)return;
-  const rows=normalizeRows(payload).filter(row=>{const mode=String(row.typingMode??row.typing_mode??row.mode??row.inputMode??'en');return mode===typingMode;}).slice(0,20);
-  $('#rank-content').classList.remove('empty-state');$('#rank-content').innerHTML=rows.length?`<table><thead><tr><th>名次</th><th>同學</th><th>分數</th></tr></thead><tbody>${rows.map((row,i)=>`<tr><td>${i+1}</td><td>${esc(cleanName(row.playerName??row.name??row.nickname)||'同學')}</td><td>${Math.max(0,Math.round(Number(row.score??row.finalScore)||0))}</td></tr>`).join('')}</tbody></table>`:'<div class="empty-state">這一關暫時沒有可顯示的紀錄。<br>旅程可以照常繼續。</div>';
- }catch(error){if(gen===generation)$('#rank-content').textContent='排行榜暫時無法讀取。可以稍後重試，遊戲與保存不受影響。';}
- finally{clearTimeout(timer);}
+async function renderLeaderboard(){
+ setView('leaderboard',frame(`<div class="chapter">排行榜</div><h1 class="section-title">未開</h1><p class="small">本機版唔讀外部榜。</p>${secondary('home','返主頁')}`,'leaderboard'));
 }
 function showModal(title,html,actions){
  if(modal.open){pendingModalClose=null;modal.close();}
@@ -619,7 +491,7 @@ const actions={
  'help-key':()=>{session.assisted=true;$('#keyboard-hint').hidden=false;$('#story-message').textContent='睇亮起嘅鍵，啱就撳。';},
  wardrobe:()=>renderWardrobe(),outfit:b=>{if(wardrobeTab==='limited-draw')outfitFilter='limited';renderWardrobe(b.dataset.id);},equip:b=>{if(!availableOutfits(store.save).some(o=>o.id===b.dataset.id))return;store.update({...markOutfitSeen(store.save,b.dataset.id),equippedOutfitId:b.dataset.id},{outfitDirty:true});renderWardrobe(b.dataset.id);sound.play('equip',.5);},
  'wear-reward':b=>{if(!availableOutfits(store.save).some(o=>o.id===b.dataset.id))return;store.update({...markOutfitSeen(store.save,b.dataset.id),equippedOutfitId:b.dataset.id},{outfitDirty:true});renderWardrobe(b.dataset.id);toast('新衣穿好了，下一段旅程在等你。');},
- 'first-challenge':()=>renderChallengeBrief(0),challenges:renderChallenges,'typing-mode':b=>switchRoute(b.dataset.id),'start-challenge':b=>renderChallengeBrief(Number(b.dataset.index)),'challenge-brief':b=>{renderChallengeBrief(Number(b.dataset.index));$(`[data-action=challenge-brief][data-index="${selectedChallenge}"]`)?.focus({preventScroll:true});},'begin-challenge':b=>startLegacy('challenge',Number(b.dataset.index)),'enemy-guide':b=>renderEnemyGuide(Number(b.dataset.index)),'select-enemy':b=>{renderEnemyGuide(guideStage,b.dataset.id);if(matchMedia('(max-width:700px)').matches)$('.enemy-dossier').scrollIntoView({behavior:reduced()?'instant':'smooth',block:'start'});},'enemy-demo':b=>{if(b.dataset.motion==='attack')guideDirector.attack('preview');else if(b.dataset.motion==='hurt')guideDirector.hurt();else if(b.dataset.motion==='defeat')guideDirector.markDefeated(guideEnemy);else guideDirector.rest();},boss:renderBoss,'start-boss':()=>startLegacy('boss'),
+ 'first-challenge':()=>renderChallengeBrief(0),challenges:renderChallenges,'typing-mode':b=>switchRoute(b.dataset.id),'start-challenge':b=>renderChallengeBrief(Number(b.dataset.index)),'challenge-brief':b=>{renderChallengeBrief(Number(b.dataset.index));$(`[data-action=challenge-brief][data-index="${selectedChallenge}"]`)?.focus({preventScroll:true});},'begin-challenge':b=>startLegacy('challenge',Number(b.dataset.index)),'enemy-guide':b=>renderEnemyGuide(Number(b.dataset.index)),'select-enemy':b=>{renderEnemyGuide(guideStage,b.dataset.id);if(matchMedia('(max-width:700px)').matches)$('.enemy-dossier').scrollIntoView({behavior:reduced()?'instant':'smooth',block:'start'});},'enemy-demo':()=>toast('示範未開。'),boss:renderBoss,'start-boss':()=>startLegacy('boss'),
  'leave-legacy':leaveLegacy,'retry-legacy':()=>startLegacy(legacyKind,legacyIndex),
  account:renderAccount,login:async b=>{
   const current=store,original=b.innerHTML,guest=screen.querySelectorAll('[data-action=submit-name],[data-action=resume-guest]');
